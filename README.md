@@ -9,51 +9,40 @@ It accepts a JATS XML file, resolves each `<ref>` element against CrossRef and D
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) or Docker
 
-## Installation
-
-### Local (without Docker)
-
-```bash
-uv sync
-```
-
-### With Docker
-
-```bash
-docker compose build
-```
-
 ## Configuration
 
-(Optional) Set the `CROSSREF_MAILTO` environment variable before running (to use the CrossRef polite pool).
+(Optional) Set the `CROSSREF_MAILTO` environment variable to use the CrossRef polite pool.
 
 ```bash
 export CROSSREF_MAILTO=you@example.com
 ```
 
-## Running the service
+---
 
-### With Docker Compose
+## Using it as an app / API
+
+### Installation
+
+#### With Docker (recommended)
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
 The service starts at `http://localhost:8000` with hot-reload enabled.
 
-### Locally
+#### Locally
 
 ```bash
+uv sync --extra serve
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-## API
+### HTTP API
 
-### `POST /enrich`
+#### `POST /enrich`
 
 Submit a JATS XML file. Returns the enriched XML with DOIs injected.
-
-**Example**
 
 ```bash
 curl -X POST http://localhost:8000/enrich \
@@ -77,6 +66,37 @@ Kubernetes liveness probe. Returns `{"status": "ok"}`.
 #### `GET /ready`
 
 Kubernetes readiness probe. Returns `{"status": "ready"}`.
+
+---
+
+## Importing it as a library
+
+Install the core package (no FastAPI/uvicorn) directly from GitHub:
+
+```bash
+pip install "jats-ref-refinery @ git+https://github.com/elifesciences/jats-ref-refinery.git"
+```
+
+Or with `uv`:
+
+```bash
+uv add "jats-ref-refinery @ git+https://github.com/elifesciences/jats-ref-refinery.git"
+```
+
+Then call `enrich_jats` directly:
+
+```python
+import asyncio
+from app.enricher import enrich_jats
+
+with open("article.xml", "rb") as f:
+    enriched = asyncio.run(enrich_jats(f.read()))
+
+with open("enriched.xml", "wb") as f:
+    f.write(enriched)
+```
+
+---
 
 ## Running tests
 
