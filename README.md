@@ -2,12 +2,12 @@
 
 A Python microservice that enriches bibliographic references in JATS XML with PIDs.
 
-It accepts a JATS XML package, resolves each `<ref>` element against CrossRef and DataCite, and injects `<pub-id>` elements where a confident match is found.
+It accepts a JATS XML file, resolves each `<ref>` element against CrossRef and DataCite, and injects `<pub-id>` elements where a confident match is found.
 
 ## Requirements
 
 - Python 3.12+
-- [uv](https://docs.astral.sh/uv/) (recommended) or Docker
+- [uv](https://docs.astral.sh/uv/) or Docker
 
 ## Installation
 
@@ -33,7 +33,7 @@ export CROSSREF_MAILTO=you@example.com
 
 ## Running the service
 
-### With Docker Compose (recommended)
+### With Docker Compose
 
 ```bash
 docker compose up
@@ -70,11 +70,11 @@ A resolved reference gets a `<pub-id>` element added inside the `<mixed-citation
 </mixed-citation>
 ```
 
-### `GET /health`
+#### `GET /health`
 
 Kubernetes liveness probe. Returns `{"status": "ok"}`.
 
-### `GET /ready`
+#### `GET /ready`
 
 Kubernetes readiness probe. Returns `{"status": "ready"}`.
 
