@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Minimal JATS XML fixture for unit tests -->
+<article xmlns:xlink="http://www.w3.org/1999/xlink">
+  <back>
+    <ref-list>
+      <ref id="r1">
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name><surname>Smith</surname><given-names>J</given-names></name>
+          </person-group>
+          <article-title>A study of something important</article-title>
+          <source>Nature</source>
+          <year>2020</year>
+          <volume>580</volume>
+          <fpage>123</fpage>
+          <lpage>130</lpage>
+        </element-citation>
+      </ref>
+      <ref id="r2">
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name><surname>Jones</surname><given-names>A B</given-names></name>
+          </person-group>
+          <article-title>Completely fabricated title that will not match anything</article-title>
+          <source>Fake Journal of Nonexistent Research</source>
+          <year>2099</year>
+          <volume>99</volume>
+          <fpage>999</fpage>
+        </element-citation>
+      </ref>
+    </ref-list>
+  </back>
+</article>

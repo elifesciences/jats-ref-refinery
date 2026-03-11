@@ -20,7 +20,7 @@ uv sync
 ### With Docker
 
 ```bash
-docker build -t jats-ref-refinery .
+docker compose build
 ```
 
 ## Configuration
@@ -81,5 +81,5 @@ Kubernetes readiness probe. Returns `{"status": "ready"}`.
 ## Running tests
 
 ```bash
-pytest
+uv run pytest
 ```
