@@ -77,7 +77,10 @@ def _normalise(item: dict) -> dict:
         "title": titles[0] if titles else "",
         "first_author": first_author,
         "year": year,
-        "source": container[0] if container else "",
+        "source": (
+            container[0] if container
+            else (item.get("institution") or [{}])[0].get("name", "")
+        ),
         "short_source": short_container[0] if short_container else "",
         "pages": item.get("page", ""),
         "api_score": item.get("score", 0.0),
