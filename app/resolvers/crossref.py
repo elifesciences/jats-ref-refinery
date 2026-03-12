@@ -9,7 +9,7 @@ import os
 import re
 import httpx
 
-from app.http_utils import get_with_retry
+from app.http_utils import get_with_retry, parse_json
 from app.xml_handler import RefFields
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,9 @@ class CrossRefResolver:
             logger.debug("CrossRef request failed: %r", exc)
             return []
 
-        data = resp.json()
+        data = parse_json(resp, context=f"crossref {ref.ref_id}")
+        if data is None:
+            return []
         items = data.get("message", {}).get("items", [])
         candidates = [_normalise(item) for item in items]
         filtered = [c for c in candidates

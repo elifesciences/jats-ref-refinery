@@ -8,7 +8,7 @@ import logging
 
 import httpx
 
-from app.http_utils import get_with_retry
+from app.http_utils import get_with_retry, parse_json
 from app.xml_handler import RefFields
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,10 @@ class DataCiteResolver:
             logger.debug("DataCite request failed: %r", exc)
             return []
 
-        items = resp.json().get("data", [])
+        data = parse_json(resp, context=f"datacite {ref.ref_id}")
+        if data is None:
+            return []
+        items = data.get("data", [])
         return [_normalise(item) for item in items]
 
 

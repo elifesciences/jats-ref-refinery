@@ -10,7 +10,7 @@ import re
 
 import httpx
 
-from app.http_utils import get_with_retry
+from app.http_utils import get_with_retry, parse_json
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,9 @@ class OpenAlexResolver:
             logger.debug("OpenAlex: no result for DOI %s", doi)
             return ""
 
-        data = resp.json()
+        data = parse_json(resp, context=f"openalex doi:{doi}")
+        if data is None:
+            return ""
         pmid_url = data.get("ids", {}).get("pmid", "")
         if not pmid_url:
             return ""
@@ -67,7 +69,9 @@ class OpenAlexResolver:
             logger.debug("OpenAlex: no result for PMID %s", pmid)
             return ""
 
-        data = resp.json()
+        data = parse_json(resp, context=f"openalex pmid:{pmid}")
+        if data is None:
+            return ""
         doi = data.get("doi", "")
         if doi:
             # doi format: "https://doi.org/10.1234/example"
