@@ -26,7 +26,8 @@ class RefFields:
     source: str
     volume: str
     pages: str
-    existing_doi: str = ""  # DOI already present in the input XML, if any
+    existing_doi: str = ""   # DOI already present in the input XML, if any
+    existing_pmid: str = ""  # PMID already present in the input XML, if any
     enrichment: Optional[dict] = None  # populated by enricher after lookup
 
 
@@ -70,7 +71,7 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
     title = _text("article-title") or _text("chapter-title") or source
     year = _parse_year(_text("year"))
     volume = _text("volume")
-    pages = _text("fpage")
+    pages = _text("fpage") or _text("elocation-id")
 
     # First author: first <name> or <string-name> in author person-group
     first_author = ""
@@ -86,12 +87,15 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
             else:
                 first_author = (name_el.text or "").strip()
 
-    # Existing DOI in the input, if any
+    # Existing pub-ids in the input, if any
     existing_doi = ""
+    existing_pmid = ""
     for pub_id_el in ref_el.iter("pub-id"):
-        if pub_id_el.get("pub-id-type") == "doi":
+        id_type = pub_id_el.get("pub-id-type", "")
+        if id_type == "doi" and not existing_doi:
             existing_doi = (pub_id_el.text or "").strip().lower()
-            break
+        elif id_type == "pmid" and not existing_pmid:
+            existing_pmid = (pub_id_el.text or "").strip()
 
     return RefFields(
         element=ref_el,
@@ -103,26 +107,30 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
         volume=volume,
         pages=pages,
         existing_doi=existing_doi,
+        existing_pmid=existing_pmid,
     )
 
 
 def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
-    """Mutate the lxml tree — add <pub-id> for confirmed DOIs — serialise."""
+    """Add <pub-id> for confirmed DOIs/PMIDs."""
     for ref in refs:
         if not ref.enrichment:
             continue
 
         doi = ref.enrichment.get("doi")
-        if not doi:
-            continue
+        pmid = ref.enrichment.get("pmid")
 
-        if ref.existing_doi and ref.existing_doi == doi.lower():
+        if not doi and not pmid:
             continue
 
         citation = ref.element.find(".//mixed-citation")
         if citation is None:
             citation = ref.element.find(".//element-citation")
-        if citation is not None:
+        if citation is None:
+            continue
+
+        # Insert new DOI with comment for conflict
+        if doi and not (ref.existing_doi and ref.existing_doi == doi.lower()):
             prev = citation[-1] if len(citation) else None
             if prev is not None:
                 prev.tail = (prev.tail or "") + " "
@@ -136,6 +144,15 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
             pub_id = etree.SubElement(citation, "pub-id")
             pub_id.set("pub-id-type", "doi")
             pub_id.text = doi
+
+        # Insert PMID after DOI, if not in the input
+        if pmid and not ref.existing_pmid:
+            prev = citation[-1] if len(citation) else None
+            if prev is not None:
+                prev.tail = (prev.tail or "") + " "
+            pmid_el = etree.SubElement(citation, "pub-id")
+            pmid_el.set("pub-id-type", "pmid")
+            pmid_el.text = pmid
 
     doctype = tree.docinfo.doctype
     out = BytesIO()
