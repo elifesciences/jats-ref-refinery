@@ -16,6 +16,7 @@ import httpx
 from app.cache import get_cache
 from app.resolvers.crossref import CrossRefResolver
 from app.resolvers.datacite import DataCiteResolver
+from app.resolvers.openalex import OpenAlexResolver
 from app.scoring import score_match, HIGH_CONFIDENCE_THRESHOLD
 from app.xml_handler import parse_refs, build_enriched_xml, RefFields
 
@@ -26,31 +27,72 @@ logger = logging.getLogger(__name__)
 
 
 async def enrich_jats(raw_xml: bytes) -> bytes:
-    """Parse JATS XML, enrich each <ref> with a DOI where confident."""
+    """Parse JATS XML, enrich each <ref> with a DOI and PMID where possible."""
     refs, tree = parse_refs(raw_xml)
 
     async with httpx.AsyncClient(timeout=5.0) as client:
         crossref = CrossRefResolver(client)
         datacite = DataCiteResolver(client)
+        openalex = OpenAlexResolver(client)
         cache = get_cache()
         semaphore = asyncio.Semaphore(5)
 
-        tasks = [
-            _enrich_ref(ref, crossref, datacite, cache, semaphore)
+        # Phase 1: DOI resolution (CrossRef → DataCite)
+        doi_tasks = [
+            _lookup_doi(ref, crossref, datacite, cache, semaphore)
             for ref in refs
         ]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        doi_results = await asyncio.gather(*doi_tasks, return_exceptions=True)
 
-    for ref, result in zip(refs, results):
-        if isinstance(result, Exception):
-            logger.error("Failed to enrich ref %s: %s", ref.ref_id, result)
-            result = None
-        ref.enrichment = result
+        for ref, result in zip(refs, doi_results):
+            if isinstance(result, Exception):
+                logger.error(
+                    "Failed to enrich ref %s: %s", ref.ref_id, result
+                )
+                result = None
+            ref.enrichment = result
+
+        # Phase 2: PMID lookup via OpenAlex for any ref with a DOI but no PMID
+        pmid_refs: list[RefFields] = []
+        pmid_dois: list[str] = []
+        for ref in refs:
+            if ref.existing_pmid:
+                continue
+            doi = ref.existing_doi or (ref.enrichment or {}).get("doi")
+            if not doi:
+                continue
+            pmid_refs.append(ref)
+            pmid_dois.append(doi)
+
+        pmid_tasks = [
+            _lookup_pmid(doi, openalex, semaphore)
+            for doi in pmid_dois
+        ]
+        pmid_results = await asyncio.gather(*pmid_tasks,
+                                            return_exceptions=True)
+
+        for ref, pmid in zip(pmid_refs, pmid_results):
+            if isinstance(pmid, Exception) or not pmid:
+                continue
+            if ref.enrichment is None:
+                # Ref had an existing DOI but no enrichment dict yet
+                ref.enrichment = {"doi": None, "pmid": pmid}
+            else:
+                ref.enrichment["pmid"] = pmid
 
     return build_enriched_xml(tree, refs)
 
 
-async def _enrich_ref(
+async def _lookup_pmid(
+    doi: str,
+    openalex: OpenAlexResolver,
+    semaphore: asyncio.Semaphore,
+) -> str:
+    async with semaphore:
+        return await openalex.lookup_pmid(doi)
+
+
+async def _lookup_doi(
     ref: RefFields,
     crossref: CrossRefResolver,
     datacite: DataCiteResolver,
