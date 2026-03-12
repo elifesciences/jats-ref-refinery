@@ -65,7 +65,9 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
 
     def _text(tag: str) -> str:
         el = citation.find(f".//{tag}") if citation is not None else None
-        return (el.text or "").strip() if el is not None and el.text else ""
+        if el is None:
+            return ""
+        return "".join(el.itertext()).strip()
 
     source = _text("source")
     title = _text("article-title") or _text("chapter-title") or source

@@ -31,7 +31,8 @@ _WEIGHTS = {
 
 
 def _clean(s: str) -> str:
-    """Normalise whitespace and strip trailing full stop for comparison."""
+    """Strip HTML tags, normalise whitespace, remove trailing full stop."""
+    s = re.sub(r"<[^>]+>", "", s)
     s = s.strip()
     if s.endswith("."):
         s = s[:-1]
@@ -66,7 +67,7 @@ def score_match(ref: RefFields, candidate: dict) -> float:
         scores["year"] = 1.0 if ref.year == str(candidate["year"]) else 0.0
 
     if ref.pages and candidate.get("pages"):
-        # ref.pages is fpage only; candidate may return a full range e.g. "123-145"
+        # ref.pages is fpage only; candidate may return a range e.g. "123-145"
         scores["pages"] = 1.0 if ref.pages in candidate["pages"] else 0.0
 
     if ref.source and candidate.get("source"):
