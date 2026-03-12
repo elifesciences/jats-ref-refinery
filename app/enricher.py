@@ -71,9 +71,10 @@ async def enrich_jats(raw_xml: bytes) -> bytes:
         pmid_results = await asyncio.gather(*pmid_tasks,
                                             return_exceptions=True)
 
-        for ref, pmid in zip(pmid_refs, pmid_results):
-            if isinstance(pmid, Exception) or not pmid:
+        for ref, result in zip(pmid_refs, pmid_results):
+            if isinstance(result, Exception) or not result:
                 continue
+            pmid = result["pmid"]
             if ref.enrichment is None:
                 # Ref had an existing DOI but no enrichment dict yet
                 ref.enrichment = {"doi": None, "pmid": pmid}
@@ -87,9 +88,12 @@ async def _lookup_pmid(
     doi: str,
     openalex: OpenAlexResolver,
     semaphore: asyncio.Semaphore,
-) -> str:
+) -> Optional[dict]:
     async with semaphore:
-        return await openalex.lookup_pmid(doi)
+        pmid = await openalex.lookup_pmid(doi)
+        if not pmid:
+            return None
+        return {"pmid": pmid, "source": "openalex"}
 
 
 async def _lookup_doi(
