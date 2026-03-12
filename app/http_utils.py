@@ -18,12 +18,26 @@ _RETRYABLE_STATUSES = {429, 502, 503, 504}
 async def get_with_retry(
     client: httpx.AsyncClient, url: str, **kwargs
 ) -> httpx.Response:
-    """GET with exponential backoff on 429 and 502+ responses.
+    """GET with exponential backoff on 429, 502+, and timeouts.
 
     Raises httpx.HTTPError after _MAX_RETRIES exhausted.
     """
+    last_exc: httpx.TimeoutException | None = None
+    resp: httpx.Response | None = None
+
     for attempt in range(_MAX_RETRIES + 1):
-        resp = await client.get(url, **kwargs)
+        try:
+            resp = await client.get(url, **kwargs)
+        except httpx.TimeoutException as exc:
+            last_exc = exc
+            delay = _BACKOFF_BASE * (2 ** attempt)
+            logger.warning(
+                "Timeout from %s, retrying in %.1fs (attempt %d/%d)",
+                url, delay, attempt + 1, _MAX_RETRIES,
+            )
+            await asyncio.sleep(delay)
+            continue
+
         if resp.status_code not in _RETRYABLE_STATUSES:
             resp.raise_for_status()
             return resp
@@ -34,11 +48,14 @@ async def get_with_retry(
         )
         await asyncio.sleep(delay)
 
-    raise httpx.HTTPStatusError(
-        f"HTTP {resp.status_code} not resolved after {_MAX_RETRIES} retries",
-        request=resp.request,
-        response=resp,
-    )
+    if resp is not None:
+        raise httpx.HTTPStatusError(
+            f"HTTP {resp.status_code} not resolved"
+            f" after {_MAX_RETRIES} retries",
+            request=resp.request,
+            response=resp,
+        )
+    raise last_exc
 
 
 def parse_json(resp: httpx.Response, context: str = "") -> dict | list | None:
