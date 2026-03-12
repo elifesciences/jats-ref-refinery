@@ -36,7 +36,7 @@ async def enrich_jats(raw_xml: bytes) -> bytes:
         openalex = OpenAlexResolver(client)
         cache = get_cache()
         # Limit concurrent API requests
-        semaphore = asyncio.Semaphore(5)
+        semaphore = asyncio.Semaphore(3)
 
         tasks = [
             _enrich_ref(ref, crossref, datacite, openalex, cache, semaphore)
