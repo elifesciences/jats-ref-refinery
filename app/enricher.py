@@ -35,6 +35,7 @@ async def enrich_jats(raw_xml: bytes) -> bytes:
         datacite = DataCiteResolver(client)
         openalex = OpenAlexResolver(client)
         cache = get_cache()
+        # Limit concurrent API requests
         semaphore = asyncio.Semaphore(5)
 
         # Phase 1: DOI resolution (CrossRef → DataCite)
