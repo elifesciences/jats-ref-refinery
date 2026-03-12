@@ -11,10 +11,13 @@ It accepts a JATS XML file, resolves each `<ref>` element against CrossRef and D
 
 ## Configuration
 
-(Optional) Set the `CROSSREF_MAILTO` environment variable to use the CrossRef polite pool.
+(Optional) Populate `.env` to make use of higher API rate limits.
+
+When running locally without Docker, export the variables directly:
 
 ```bash
 export CROSSREF_MAILTO=you@example.com
+export OPENALEX_API_KEY=your-key-here
 ```
 
 ---
@@ -55,7 +58,8 @@ A resolved reference gets a `<pub-id>` element added inside the `<mixed-citation
 ```xml
 <mixed-citation>
   ...
-  <pub-id pub-id-type="doi">10.1038/s41586-021-03819-2</pub-id>
+  <pub-id pub-id-type="doi">10.7554/eLife.105209</pub-id>
+  <pub-id pub-id-type="pmid">41416774</pub-id>
 </mixed-citation>
 ```
 
