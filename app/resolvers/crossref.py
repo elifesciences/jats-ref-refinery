@@ -10,9 +10,9 @@ import re
 import httpx
 
 from app.http_utils import get_with_retry
+from app.xml_handler import RefFields
 
 logger = logging.getLogger(__name__)
-from app.xml_handler import RefFields
 
 _BASE = "https://api.crossref.org/works"
 _MAILTO = os.getenv("CROSSREF_MAILTO")
