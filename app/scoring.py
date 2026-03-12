@@ -70,7 +70,9 @@ def score_match(ref: RefFields, candidate: dict) -> float:
         # ref.pages is fpage only; candidate may return a range e.g. "123-145"
         scores["pages"] = 1.0 if ref.pages in candidate["pages"] else 0.0
 
-    if ref.source and (candidate.get("source") or candidate.get("short_source")):
+    if ref.source and (
+        candidate.get("source") or candidate.get("short_source")
+    ):
         ref_source = _clean(ref.source)
         cand_sources = [
             _clean(s) for s in (
