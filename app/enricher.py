@@ -164,6 +164,18 @@ async def _lookup_doi(
         epmc_candidates = await europepmc.lookup(ref)
         if epmc_candidates:
             best = max(epmc_candidates, key=lambda c: score_match(ref, c))
+            if best.get("exact_match"):
+                logger.debug(
+                    "EuropePMC [%s]: exact NBK match doi=%s pmid=%s",
+                    ref.ref_id, best.get("doi"), best.get("pmid"),
+                )
+                enrichment = {
+                    "doi": best["doi"],
+                    "pmid": best.get("pmid", ""),
+                    "source": "europepmc",
+                }
+                cache.set(cache_key, enrichment)
+                return enrichment
             score = score_match(ref, best)
             logger.debug(
                 "EuropePMC [%s]: best score=%.3f doi=%s title=%r"

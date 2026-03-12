@@ -5,6 +5,7 @@ Returns both DOI and PMID in a single query.
 
 import logging
 import re
+from typing import Optional
 
 import httpx
 
@@ -25,6 +26,12 @@ class EuropePMCResolver:
     async def lookup(self, ref: RefFields) -> list[dict]:
         """Query Europe PMC and return up to _ROWS normalised candidate
         dicts."""
+        if ref.nbk_id:
+            result = await self._lookup_by_nbk_id(ref.nbk_id, ref.ref_id)
+            if result:
+                result["exact_match"] = True
+                return [result]
+
         if not ref.title:
             return []
 
@@ -65,6 +72,36 @@ class EuropePMCResolver:
             .get("result", [])
         )
         return [_normalise(r) for r in results]
+
+
+    async def _lookup_by_nbk_id(
+        self, nbk_id: str, ref_id: str
+    ) -> Optional[dict]:
+        """Direct lookup by NCBI Bookshelf ID (e.g. NBK586169)."""
+        params = {
+            "query": f"BOOK_ID:{nbk_id}",
+            "format": "json",
+            "pageSize": 1,
+            "resultType": "core",
+        }
+        logger.debug("EuropePMC [%s]: NBK lookup %s", ref_id, nbk_id)
+        try:
+            resp = await get_with_retry(
+                self._client,
+                _BASE,
+                params=params,
+                headers={"User-Agent": _USER_AGENT},
+            )
+        except httpx.HTTPError as exc:
+            logger.debug("EuropePMC NBK lookup failed: %r", exc)
+            return None
+
+        results = (
+            resp.json()
+            .get("resultList", {})
+            .get("result", [])
+        )
+        return _normalise(results[0]) if results else None
 
 
 def _sanitise(s: str) -> str:

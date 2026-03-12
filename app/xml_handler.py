@@ -28,6 +28,7 @@ class RefFields:
     pages: str
     existing_doi: str = ""   # DOI already present in the input XML, if any
     existing_pmid: str = ""  # PMID already present in the input XML, if any
+    nbk_id: str = ""         # NCBI Bookshelf ID from ext-link, if present
     enrichment: Optional[dict] = None  # populated by enricher after lookup
 
 
@@ -90,6 +91,18 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
                 first_author = ((name_el.text or "").strip().split()[0:1]
                                 or [""])[0]
 
+    # NCBI Bookshelf ID from ext-link, if present
+    nbk_id = ""
+    for link_el in ref_el.iter("ext-link"):
+        href = (
+            link_el.get("{http://www.w3.org/1999/xlink}href", "")
+            or link_el.get("href", "")
+        )
+        match = re.search(r"ncbi\.nlm\.nih\.gov/books/(NBK\d+)", href)
+        if match:
+            nbk_id = match.group(1)
+            break
+
     # Existing pub-ids in the input, if any
     existing_doi = ""
     existing_pmid = ""
@@ -111,6 +124,7 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
         pages=pages,
         existing_doi=existing_doi,
         existing_pmid=existing_pmid,
+        nbk_id=nbk_id,
     )
 
 
