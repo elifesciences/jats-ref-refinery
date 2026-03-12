@@ -32,7 +32,7 @@ class CrossRefResolver:
         if not ref.title:
             return []
 
-        query = " ".join(filter(None, [ref.title, ref.source]))
+        query = " ".join(filter(None, [ref.title, ref.source, ref.year]))
         params = {
             "query.bibliographic": query,
             "rows": _ROWS,
@@ -41,10 +41,6 @@ class CrossRefResolver:
             params["mailto"] = _MAILTO
         if ref.first_author:
             params["query.author"] = ref.first_author
-        if ref.year:
-            params["filter"] = (
-                f"from-pub-date:{ref.year},until-pub-date:{ref.year}"
-            )
 
         try:
             resp = await get_with_retry(
