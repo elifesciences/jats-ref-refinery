@@ -71,7 +71,7 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
     title = _text("article-title") or _text("chapter-title") or source
     year = _parse_year(_text("year"))
     volume = _text("volume")
-    pages = _text("fpage")
+    pages = _text("fpage") or _text("elocation-id")
 
     # First author: first <name> or <string-name> in author person-group
     first_author = ""
