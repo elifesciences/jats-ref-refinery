@@ -31,11 +31,10 @@ _WEIGHTS = {
 
 
 def _clean(s: str) -> str:
-    """Strip HTML tags, normalise whitespace, remove trailing full stop."""
+    """Strip HTML tags and full stops, normalise whitespace."""
     s = re.sub(r"<[^>]+>", "", s)
+    s = s.replace(".", "")
     s = s.strip()
-    if s.endswith("."):
-        s = s[:-1]
     s = re.sub(r"\s+", " ", s)
     return s
 
