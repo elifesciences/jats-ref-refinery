@@ -9,7 +9,7 @@ from typing import Optional
 
 import httpx
 
-from app.http_utils import get_with_retry
+from app.http_utils import get_with_retry, parse_json
 from app.xml_handler import RefFields
 
 logger = logging.getLogger(__name__)
@@ -66,11 +66,10 @@ class EuropePMCResolver:
             logger.debug("EuropePMC request failed: %r", exc)
             return []
 
-        results = (
-            resp.json()
-            .get("resultList", {})
-            .get("result", [])
-        )
+        data = parse_json(resp, context=f"europepmc {ref.ref_id}")
+        if data is None:
+            return []
+        results = data.get("resultList", {}).get("result", [])
         return [_normalise(r) for r in results]
 
     async def _lookup_by_nbk_id(
@@ -95,11 +94,10 @@ class EuropePMCResolver:
             logger.debug("EuropePMC NBK lookup failed: %r", exc)
             return None
 
-        results = (
-            resp.json()
-            .get("resultList", {})
-            .get("result", [])
-        )
+        data = parse_json(resp, context=f"europepmc nbk {nbk_id}")
+        if data is None:
+            return None
+        results = data.get("resultList", {}).get("result", [])
         return _normalise(results[0]) if results else None
 
 
