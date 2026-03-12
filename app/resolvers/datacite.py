@@ -4,41 +4,48 @@ Fallback when CrossRef yields no high-confidence match.
 Covers datasets, software, Zenodo preprints, and other non-journal content.
 """
 
-from typing import Optional
+import logging
 
 import httpx
 
 from app.http_utils import get_with_retry
 from app.xml_handler import RefFields
 
+logger = logging.getLogger(__name__)
+
 _BASE = "https://api.datacite.org/dois"
+_ROWS = 5
 
 
 class DataCiteResolver:
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
 
-    async def lookup(self, ref: RefFields) -> Optional[dict]:
-        """Query DataCite and return a normalised candidate dict, or None."""
+    async def lookup(self, ref: RefFields) -> list[dict]:
+        """Query DataCite and return up to _ROWS normalised candidate dicts."""
         if not ref.title:
-            return None
+            return []
+
+        parts = [f'titles.title:"{ref.title}"']
+        if ref.first_author:
+            parts.append(f"creators.familyName:{ref.first_author}")
+        if ref.year:
+            parts.append(f"publicationYear:{ref.year}")
+        query = " AND ".join(parts)
 
         params = {
-            "query": ref.title,
-            "page[size]": 1,
+            "query": query,
+            "page[size]": _ROWS,
         }
 
         try:
             resp = await get_with_retry(self._client, _BASE, params=params)
-        except httpx.HTTPError:
-            return None
+        except httpx.HTTPError as exc:
+            logger.debug("DataCite request failed: %r", exc)
+            return []
 
-        data = resp.json()
-        items = data.get("data", [])
-        if not items:
-            return None
-
-        return _normalise(items[0])
+        items = resp.json().get("data", [])
+        return [_normalise(item) for item in items]
 
 
 def _normalise(item: dict) -> dict:
@@ -46,11 +53,7 @@ def _normalise(item: dict) -> dict:
     creators = attrs.get("creators", [])
     first_author = ""
     if creators:
-        c = creators[0]
-        first_author = (
-            c.get("name", "")
-            or f"{c.get('familyName', '')} {c.get('givenName', '')}".strip()
-        )
+        first_author = creators[0].get("familyName", "")
 
     titles = attrs.get("titles", [])
     title = titles[0].get("title", "") if titles else ""

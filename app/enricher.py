@@ -180,19 +180,21 @@ async def _lookup_doi(
             logger.debug("CrossRef [%s]: no results returned", ref.ref_id)
 
         # DataCite fallback
-        dc_result = await datacite.lookup(ref)
-        if dc_result:
-            score = score_match(ref, dc_result)
+        dc_candidates = await datacite.lookup(ref)
+        if dc_candidates:
+            best = max(dc_candidates, key=lambda c: score_match(ref, c))
+            score = score_match(ref, best)
             logger.debug(
-                "DataCite [%s]: score=%.3f doi=%s title=%r",
+                "DataCite [%s]: best score=%.3f doi=%s title=%r"
+                " (%d candidates)",
                 ref.ref_id, score,
-                dc_result.get("doi"), dc_result.get("title"),
+                best.get("doi"), best.get("title"), len(dc_candidates),
             )
             if score >= HIGH_CONFIDENCE_THRESHOLD:
-                enrichment = {"doi": dc_result["doi"], "source": "datacite"}
+                enrichment = {"doi": best["doi"], "source": "datacite"}
                 cache.set(cache_key, enrichment)
                 return enrichment
         else:
-            logger.debug("DataCite [%s]: no result returned", ref.ref_id)
+            logger.debug("DataCite [%s]: no results returned", ref.ref_id)
 
         return None
