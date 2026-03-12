@@ -9,11 +9,10 @@
             <name><surname>Smith</surname><given-names>J</given-names></name>
           </person-group>
           <article-title>A study of something important</article-title>
-          <source>Nature</source>
+          <source>eLife</source>
           <year>2020</year>
-          <volume>580</volume>
-          <fpage>123</fpage>
-          <lpage>130</lpage>
+          <volume>9</volume>
+          <elocation-id>e58580</elocation-id>
         </element-citation>
       </ref>
       <ref id="r2">
@@ -23,9 +22,9 @@
           </person-group>
           <article-title>Completely fabricated title that will not match anything</article-title>
           <source>Fake Journal of Nonexistent Research</source>
-          <year>2099</year>
-          <volume>99</volume>
-          <fpage>999</fpage>
+          <year>2018</year>
+          <volume>7</volume>
+          <elocation-id>e99999</elocation-id>
         </element-citation>
       </ref>
     </ref-list>

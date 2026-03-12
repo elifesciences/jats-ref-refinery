@@ -81,7 +81,9 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
     if citation is not None:
         pg = citation.find(".//person-group[@person-group-type='author']")
         node = pg if pg is not None else citation
-        name_el = node.find("name") or node.find("string-name")
+        name_el = node.find("name")
+        if name_el is None:
+            name_el = node.find("string-name")
         if name_el is not None:
             surname = name_el.findtext("surname") or ""
             if surname:
