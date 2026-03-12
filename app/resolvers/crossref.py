@@ -32,7 +32,8 @@ class CrossRefResolver:
         if not ref.title:
             return []
 
-        query = " ".join(filter(None, [ref.title, ref.source, ref.year]))
+        source = ref.source if ref.source != ref.title else ""
+        query = " ".join(filter(None, [ref.title, source, ref.year]))
         params = {
             "query.bibliographic": query,
             "rows": _ROWS,

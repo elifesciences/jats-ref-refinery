@@ -156,7 +156,8 @@ async def _lookup_doi(
             return cached
 
         # CrossRef — score all candidates, pick the best
-        query = " ".join(filter(None, [ref.title, ref.source, ref.year]))
+        source = ref.source if ref.source != ref.title else ""
+        query = " ".join(filter(None, [ref.title, source, ref.year]))
         logger.debug(
             "CrossRef [%s]: querying %r author=%r",
             ref.ref_id, query, ref.first_author,
