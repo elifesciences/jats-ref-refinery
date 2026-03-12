@@ -38,51 +38,88 @@ async def enrich_jats(raw_xml: bytes) -> bytes:
         # Limit concurrent API requests
         semaphore = asyncio.Semaphore(5)
 
-        # Phase 1: DOI resolution (CrossRef → DataCite)
-        doi_tasks = [
-            _lookup_doi(ref, crossref, datacite, cache, semaphore)
+        tasks = [
+            _enrich_ref(ref, crossref, datacite, openalex, cache, semaphore)
             for ref in refs
         ]
-        doi_results = await asyncio.gather(*doi_tasks, return_exceptions=True)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        for ref, result in zip(refs, doi_results):
+        for ref, result in zip(refs, results):
             if isinstance(result, Exception):
                 logger.error(
                     "Failed to enrich ref %s: %s", ref.ref_id, result
                 )
-                result = None
+                continue
             ref.enrichment = result
 
-        # Phase 2: PMID lookup via OpenAlex for any ref with a DOI but no PMID
-        pmid_refs: list[RefFields] = []
-        pmid_dois: list[str] = []
-        for ref in refs:
-            if ref.existing_pmid:
-                continue
-            doi = ref.existing_doi or (ref.enrichment or {}).get("doi")
-            if not doi:
-                continue
-            pmid_refs.append(ref)
-            pmid_dois.append(doi)
-
-        pmid_tasks = [
-            _lookup_pmid(doi, openalex, cache, semaphore)
-            for doi in pmid_dois
-        ]
-        pmid_results = await asyncio.gather(*pmid_tasks,
-                                            return_exceptions=True)
-
-        for ref, result in zip(pmid_refs, pmid_results):
-            if isinstance(result, Exception) or not result:
-                continue
-            pmid = result["pmid"]
-            if ref.enrichment is None:
-                # Ref had an existing DOI but no enrichment dict yet
-                ref.enrichment = {"doi": None, "pmid": pmid}
-            else:
-                ref.enrichment["pmid"] = pmid
-
     return build_enriched_xml(tree, refs)
+
+
+async def _enrich_ref(
+    ref: RefFields,
+    crossref: CrossRefResolver,
+    datacite: DataCiteResolver,
+    openalex: OpenAlexResolver,
+    cache,
+    semaphore: asyncio.Semaphore,
+) -> Optional[dict]:
+    """Return an enrichment dict for a single ref, or None.
+
+    Steps (each skipped if the information is already known):
+      1. PMID -> DOI via OpenAlex (if ref has a PMID but no DOI)
+      2. DOI via CrossRef, then DataCite (if no DOI)
+      3. DOI -> PMID via OpenAlex (if now has a DOI but no PMID)
+    """
+    doi = ref.existing_doi
+    pmid = ref.existing_pmid
+    source: Optional[str] = None
+
+    # Step 1: resolve DOI from existing PMID
+    if pmid and not doi:
+        result = await _lookup_doi_from_pmid(pmid, openalex, cache, semaphore)
+        if result:
+            doi = result["doi"]
+            source = result["source"]
+
+    # Step 2: resolve DOI via CrossRef / DataCite
+    if not doi:
+        result = await _lookup_doi(ref, crossref, datacite, cache, semaphore)
+        if result:
+            doi = result["doi"]
+            source = result["source"]
+
+    # Step 3: resolve PMID from DOI
+    if doi and not pmid:
+        result = await _lookup_pmid(doi, openalex, cache, semaphore)
+        if result:
+            pmid = result["pmid"]
+
+    new_doi = doi if doi != ref.existing_doi else None
+    new_pmid = pmid if pmid != ref.existing_pmid else None
+
+    if not new_doi and not new_pmid:
+        return None
+
+    return {"doi": new_doi, "pmid": new_pmid, "source": source}
+
+
+async def _lookup_doi_from_pmid(
+    pmid: str,
+    openalex: OpenAlexResolver,
+    cache,
+    semaphore: asyncio.Semaphore,
+) -> Optional[dict]:
+    cache_key = f"doi|pmid:{pmid}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    async with semaphore:
+        doi = await openalex.lookup_doi(pmid)
+        if not doi:
+            return None
+        result = {"doi": doi, "source": "openalex"}
+        cache.set(cache_key, result)
+        return result
 
 
 async def _lookup_pmid(
