@@ -73,7 +73,6 @@ class EuropePMCResolver:
         )
         return [_normalise(r) for r in results]
 
-
     async def _lookup_by_nbk_id(
         self, nbk_id: str, ref_id: str
     ) -> Optional[dict]:
