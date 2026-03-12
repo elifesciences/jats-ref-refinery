@@ -63,6 +63,7 @@ class CrossRefResolver:
 def _normalise(item: dict) -> dict:
     titles = item.get("title", [])
     container = item.get("container-title", [])
+    short_container = item.get("short-container-title", [])
     authors = item.get("author", [])
     first_author = ""
     if authors:
@@ -77,6 +78,7 @@ def _normalise(item: dict) -> dict:
         "first_author": first_author,
         "year": year,
         "source": container[0] if container else "",
+        "short_source": short_container[0] if short_container else "",
         "pages": item.get("page", ""),
         "api_score": item.get("score", 0.0),
     }
