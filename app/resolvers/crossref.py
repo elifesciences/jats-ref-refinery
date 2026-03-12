@@ -66,8 +66,7 @@ def _normalise(item: dict) -> dict:
     authors = item.get("author", [])
     first_author = ""
     if authors:
-        a = authors[0]
-        first_author = f"{a.get('family', '')} {a.get('given', '')}".strip()
+        first_author = authors[0].get("family", "")
 
     issued = item.get("issued", {}).get("date-parts", [[None]])
     year = str(issued[0][0]) if issued and issued[0] and issued[0][0] else ""

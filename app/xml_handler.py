@@ -83,11 +83,12 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
         name_el = node.find("name") or node.find("string-name")
         if name_el is not None:
             surname = name_el.findtext("surname") or ""
-            given = name_el.findtext("given-names") or ""
-            if surname or given:
-                first_author = f"{surname} {given}".strip()
+            if surname:
+                first_author = surname
             else:
-                first_author = (name_el.text or "").strip()
+                # Untagged string-name fallback: take first token as surname
+                first_author = ((name_el.text or "").strip().split()[0:1]
+                                or [""])[0]
 
     # Existing pub-ids in the input, if any
     existing_doi = ""
