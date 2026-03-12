@@ -56,7 +56,7 @@ class CrossRefResolver:
                 headers={"User-Agent": _USER_AGENT},
             )
         except httpx.HTTPError as exc:
-            logger.debug("CrossRef request failed: %s", exc)
+            logger.debug("CrossRef request failed: %r", exc)
             return []
 
         data = resp.json()
