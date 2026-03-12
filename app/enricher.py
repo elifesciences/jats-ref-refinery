@@ -65,7 +65,7 @@ async def enrich_jats(raw_xml: bytes) -> bytes:
             pmid_dois.append(doi)
 
         pmid_tasks = [
-            _lookup_pmid(doi, openalex, semaphore)
+            _lookup_pmid(doi, openalex, cache, semaphore)
             for doi in pmid_dois
         ]
         pmid_results = await asyncio.gather(*pmid_tasks,
@@ -87,13 +87,20 @@ async def enrich_jats(raw_xml: bytes) -> bytes:
 async def _lookup_pmid(
     doi: str,
     openalex: OpenAlexResolver,
+    cache,
     semaphore: asyncio.Semaphore,
 ) -> Optional[dict]:
+    cache_key = f"pmid|{doi}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
     async with semaphore:
         pmid = await openalex.lookup_pmid(doi)
         if not pmid:
             return None
-        return {"pmid": pmid, "source": "openalex"}
+        result = {"pmid": pmid, "source": "openalex"}
+        cache.set(cache_key, result)
+        return result
 
 
 async def _lookup_doi(
