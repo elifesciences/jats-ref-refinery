@@ -32,7 +32,7 @@ async def ready():
     },
 )
 async def enrich(request: Request) -> Response:
-    """Accept a JATS XML package and return it enriched with DOIs."""
+    """Accept a JATS XML package and return it enriched with DOIs and PMIDs."""
     body = await request.body()
     enriched_xml = await enrich_jats(body)
     return Response(
