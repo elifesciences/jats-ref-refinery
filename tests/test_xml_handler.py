@@ -19,9 +19,10 @@ def test_parse_refs_extracts_fields():
     r = refs[0]
     assert r.ref_id == "r1"
     assert "important" in r.title.lower()
-    assert r.first_author == "Smith J"
+    assert r.first_author == "Smith"
     assert r.year == "2020"
-    assert r.journal == "Nature"
+    assert r.source == "eLife"
+    assert r.pages == "e58580"
 
 
 def test_build_enriched_xml_adds_doi():
