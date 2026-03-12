@@ -4,10 +4,14 @@ Set CROSSREF_MAILTO to use the polite pool (~50 req/sec).
 If unset, requests are made without a mailto identifier (standard pool).
 """
 
+import logging
 import os
+import re
 import httpx
 
 from app.http_utils import get_with_retry
+
+logger = logging.getLogger(__name__)
 from app.xml_handler import RefFields
 
 _BASE = "https://api.crossref.org/works"
@@ -33,7 +37,8 @@ class CrossRefResolver:
             return []
 
         source = ref.source if ref.source != ref.title else ""
-        query = " ".join(filter(None, [ref.title, source, ref.year]))
+        raw = " ".join(filter(None, [ref.title, source, ref.year]))
+        query = _sanitise_query(raw)
         params = {
             "query.bibliographic": query,
             "rows": _ROWS,
@@ -50,7 +55,8 @@ class CrossRefResolver:
                 params=params,
                 headers={"User-Agent": _USER_AGENT},
             )
-        except httpx.HTTPError:
+        except httpx.HTTPError as exc:
+            logger.debug("CrossRef request failed: %s", exc)
             return []
 
         data = resp.json()
@@ -59,6 +65,11 @@ class CrossRefResolver:
         filtered = [c for c in candidates
                     if c["api_score"] >= _MIN_CANDIDATE_SCORE]
         return filtered if filtered else candidates
+
+
+def _sanitise_query(query: str) -> str:
+    """Strip reserved characters that might cause a 400."""
+    return re.sub(r'[+\-=&|><!(){}\[\]^"~*?:\\/]', " ", query)
 
 
 def _normalise(item: dict) -> dict:
