@@ -153,7 +153,9 @@ async def _lookup_doi(
 ) -> Optional[dict]:
     """Return a dict with a confirmed DOI (and PMID if available), or None."""
     async with semaphore:
-        cache_key = f"{ref.title}|{ref.first_author}|{ref.year}"
+        cache_key = (
+            f"biblio|{ref.title.lower()}|{ref.first_author.lower()}|{ref.year}"
+        )
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
