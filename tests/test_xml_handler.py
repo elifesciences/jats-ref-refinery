@@ -69,6 +69,33 @@ def test_source_used_as_title_fallback():
       </ref-list></back>
     </article>""")
     assert refs[0].title == "Only A Source"
+    assert refs[0].title_from_source is True
+
+
+def test_title_from_source_false_when_article_title_present():
+    refs, _ = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <article-title>Explicit Title</article-title>
+            <source>Journal Name</source>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    assert refs[0].title == "Explicit Title"
+    assert refs[0].title_from_source is False
+
+
+def test_title_from_source_false_when_no_source_either():
+    refs, _ = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation/>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    assert refs[0].title_from_source is False
 
 
 def test_existing_doi_and_pmid_parsed():
@@ -120,7 +147,7 @@ def test_italic_text_included_in_title():
 def test_build_enriched_xml_adds_doi():
     raw = FIXTURE.read_bytes()
     refs, tree = parse_refs(raw)
-    refs[0].enrichment = {"doi": "10.1234/test", "source": "crossref"}
+    refs[0].enrichment = {"doi": "10.1234/test", "resolver": "crossref"}
 
     result = build_enriched_xml(tree, refs)
     assert b"10.1234/test" in result
@@ -130,7 +157,7 @@ def test_build_enriched_xml_adds_pmid():
     raw = FIXTURE.read_bytes()
     refs, tree = parse_refs(raw)
     refs[0].enrichment = {
-        "doi": None, "pmid": "36375006", "source": "europepmc"
+        "doi": None, "pmid": "36375006", "resolver": "europepmc"
     }
 
     result = build_enriched_xml(tree, refs)
@@ -157,8 +184,56 @@ def test_build_enriched_xml_conflict_comment():
         </ref>
       </ref-list></back>
     </article>""")
-    refs[0].enrichment = {"doi": "10.1234/new", "source": "crossref"}
+    refs[0].enrichment = {"doi": "10.1234/new", "resolver": "crossref"}
 
     result = build_enriched_xml(tree, refs)
     assert b"conflicts with existing DOI" in result
     assert b"10.1234/new" in result
+
+
+def test_build_enriched_xml_inserts_article_title_before_source():
+    """Scenario B: source is journal name, article-title was absent."""
+    refs, tree = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <source>Clin Cancer Res</source>
+            <volume>10</volume>
+            <fpage>2299</fpage>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    refs[0].enrichment = {
+        "doi": "10.1158/1078-0432.ccr-03-0488",
+        "resolver": "europepmc",
+        "article_title_to_add": "Hypoxia and tumour progression",
+    }
+
+    result = build_enriched_xml(tree, refs)
+    assert b"<article-title>Hypoxia and tumour progression</article-title>" in result
+    assert b"<source>Clin Cancer Res</source>" in result
+    # article-title must appear before source
+    assert result.index(b"<article-title>") < result.index(b"<source>")
+
+
+def test_build_enriched_xml_renames_source_to_article_title():
+    """Scenario A: source contains the article title (mis-tagged)."""
+    refs, tree = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <source>Hypoxia and tumour progression</source>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    refs[0].enrichment = {
+        "doi": "10.1158/1078-0432.ccr-03-0488",
+        "resolver": "europepmc",
+        "journal_name_to_add": "Clinical Cancer Research",
+    }
+
+    result = build_enriched_xml(tree, refs)
+    assert b"<article-title>Hypoxia and tumour progression</article-title>" in result
+    assert b"<source>Clinical Cancer Research</source>" in result

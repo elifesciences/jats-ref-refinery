@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from app.resolvers.europepmc import EuropePMCResolver, _normalise
+from app.resolvers.europepmc import EuropePMCResolver, _normalise, _clean_title
 from app.xml_handler import RefFields
 
 _PATCH = "app.resolvers.europepmc.get_with_retry"
@@ -167,6 +167,59 @@ async def test_nbk_lookup_sets_exact_match_flag():
     assert len(results) == 1
     assert results[0]["exact_match"] is True
     assert results[0]["pmid"] == "36375006"
+
+
+def test_clean_title_strips_html_tags():
+    assert _clean_title("The <i>Drosophila</i> clock") == "The Drosophila clock"
+
+
+def test_clean_title_normalises_whitespace():
+    assert _clean_title("word  extra   space") == "word extra space"
+
+
+def test_clean_title_strips_mixed_tags():
+    assert _clean_title("<b>Bold</b> and <i>italic</i>") == "Bold and italic"
+
+
+def test_normalise_strips_html_from_title():
+    result = _normalise(_epmc_result(title="<i>C. elegans</i> biology"))
+    assert result["title"] == "C. elegans biology"
+
+
+@pytest.mark.anyio
+async def test_lookup_by_journal_returns_candidates():
+    mock_resp = _epmc_response(_epmc_result(
+        title="Hypoxia and tumour progression",
+        authorString="Yokoi K, Fidler IJ",
+        pubYear="2004",
+        doi="10.1158/1078-0432.ccr-03-0488",
+        pmid=15073106,
+        journal={"title": "Clinical Cancer Research",
+                 "medlineAbbreviation": "Clin Cancer Res"},
+    ))
+    with patch(_PATCH, new=AsyncMock(return_value=mock_resp)):
+        async with httpx.AsyncClient() as client:
+            resolver = EuropePMCResolver(client)
+            ref = _make_ref(
+                title="Clin Cancer Res", source="Clin Cancer Res",
+                first_author="Yokoi", year="2004", volume="10",
+                title_from_source=True,
+            )
+            results = await resolver.lookup_by_journal(ref)
+
+    assert len(results) == 1
+    assert results[0]["doi"] == "10.1158/1078-0432.ccr-03-0488"
+    assert results[0]["title"] == "Hypoxia and tumour progression"
+
+
+@pytest.mark.anyio
+async def test_lookup_by_journal_empty_source_returns_empty():
+    with patch(_PATCH, new=AsyncMock()) as mock:
+        async with httpx.AsyncClient() as client:
+            resolver = EuropePMCResolver(client)
+            results = await resolver.lookup_by_journal(_make_ref())
+    assert results == []
+    mock.assert_not_called()
 
 
 @pytest.mark.anyio

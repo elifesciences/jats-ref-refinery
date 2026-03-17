@@ -47,7 +47,10 @@ def score_match(ref: RefFields, candidate: dict) -> float:
     """
     scores: dict[str, float] = {}
 
-    if ref.title and candidate.get("title"):
+    # When title_from_source is set, ref.title holds a journal name, not an
+    # article title — skip the title comparison and let source matching carry
+    # that signal instead.
+    if ref.title and candidate.get("title") and not ref.title_from_source:
         scores["title"] = (
             fuzz.token_sort_ratio(
                 _clean(ref.title), _clean(candidate["title"])
