@@ -8,4 +8,5 @@ eval/fixtures/*
 eval/results/*
 !eval/results/.gitkeep
 !eval/results/latest.json
+!eval/results/latest_detail.json
 !eval/results/latest.png

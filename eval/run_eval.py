@@ -4,17 +4,20 @@ Strips existing DOIs and PMIDs from JATS XML fixtures, runs the enrichment
 pipeline, and compares found PIDs to report precision, recall, and F1 score.
 
 After each run, writes:
-  eval/results/latest.json  — machine-readable scores
-  eval/results/latest.png   — bar chart (precision / recall / F1)
-  eval/README.md            — human-readable summary with embedded chart
+  eval/results/latest.json         — machine-readable scores
+  eval/results/latest_detail.json  — per-ref outcomes (with --save-detail)
+  eval/results/latest.png          — bar chart (precision / recall / F1)
+  eval/README.md                   — human-readable summary with embedded chart
 
 Usage:
-    uv run python eval/run_eval.py [--verbose] [--delay SECS] [fixture ...]
+    uv run python eval/run_eval.py [--verbose] [--delay SECS]
+                                   [--save-detail] [fixture ...]
 
-    --verbose   Print per-ref breakdown (TP / FP / FN)
-    --delay     Seconds to wait between fixtures (default: 0.5)
-    fixture     One or more paths to JATS XML files.
-                Defaults to all *.xml files in eval/fixtures/.
+    --verbose    Print per-ref breakdown (TP / FP / FN)
+    --delay      Seconds to wait between fixtures (default: 0.5)
+    --no-detail  Skip writing per-ref outcomes to latest_detail.json
+    fixture      One or more paths to JATS XML files.
+                 Defaults to all *.xml files in eval/fixtures/.
 """
 
 import argparse
@@ -127,9 +130,15 @@ def _compute_metrics(
     recovered: dict[str, dict[str, str]],
     verbose: bool,
     fixture_name: str,
-) -> dict[str, int]:
-    """Print per-ref breakdown (if verbose) and return aggregate counts."""
+    save_detail: bool = False,
+) -> tuple[dict[str, int], list[dict]]:
+    """Print per-ref breakdown (if verbose) and return (counts, detail_rows).
+
+    detail_rows contains one entry per non-TN outcome and is only populated
+    when save_detail is True.
+    """
     tp = fp = fn = new = 0
+    detail_rows: list[dict] = []
 
     for ref_id in sorted(ground_truth):
         truth = ground_truth[ref_id]
@@ -154,7 +163,17 @@ def _compute_metrics(
                     f"  truth={t_val}  recovered={r_val}"
                 )
 
-    return {"tp": tp, "fp": fp, "fn": fn, "new": new}
+            if save_detail and outcome != "TN":
+                detail_rows.append({
+                    "fixture": fixture_name,
+                    "ref_id": ref_id,
+                    "pid": pid,
+                    "outcome": outcome,
+                    "truth": truth.get(pid, ""),
+                    "recovered": rec.get(pid, ""),
+                })
+
+    return {"tp": tp, "fp": fp, "fn": fn, "new": new}, detail_rows
 
 
 def _metrics_from_counts(counts: dict[str, int]) -> dict[str, float]:
@@ -169,9 +188,10 @@ def _metrics_from_counts(counts: dict[str, int]) -> dict[str, float]:
 
 
 async def _eval_fixture(
-    path: Path, verbose: bool, delay: float = 0.5
-) -> dict:
-    """Run evaluation for one fixture. Returns a result dict."""
+    path: Path, verbose: bool, delay: float = 0.5,
+    save_detail: bool = False,
+) -> tuple[dict, list[dict]]:
+    """Run evaluation for one fixture. Returns (result dict, detail rows)."""
     raw_xml = path.read_bytes()
 
     parser = etree.XMLParser(
@@ -182,11 +202,14 @@ async def _eval_fixture(
 
     if not ground_truth:
         print(f"  [SKIP] {path.name} — no refs with PIDs found")
-        return {
-            "name": path.stem, "skipped": True,
-            "tp": 0, "fp": 0, "fn": 0, "new": 0,
-            "precision": 0.0, "recall": 0.0, "f1": 0.0,
-        }
+        return (
+            {
+                "name": path.stem, "skipped": True,
+                "tp": 0, "fp": 0, "fn": 0, "new": 0,
+                "precision": 0.0, "recall": 0.0, "f1": 0.0,
+            },
+            [],
+        )
 
     stripped_xml = _strip_pub_ids(raw_xml)
     enriched_xml = await enrich_jats(stripped_xml)
@@ -194,7 +217,9 @@ async def _eval_fixture(
     recovered = _extract_recovered(enriched_xml)
 
     print(f"\n{path.name}  ({len(ground_truth)} refs with ground-truth PIDs)")
-    counts = _compute_metrics(ground_truth, recovered, verbose, path.name)
+    counts, detail_rows = _compute_metrics(
+        ground_truth, recovered, verbose, path.name, save_detail
+    )
     m = _metrics_from_counts(counts)
 
     tp, fp, fn, new = counts["tp"], counts["fp"], counts["fn"], counts["new"]
@@ -203,19 +228,21 @@ async def _eval_fixture(
         f"  F1={m['f1']:.3f}  (TP={tp} FP={fp} FN={fn} NEW={new})"
     )
 
-    return {
-        "name": path.stem, "skipped": False,
-        "tp": tp, "fp": fp, "fn": fn, "new": new,
-        **m,
-    }
+    return (
+        {"name": path.stem, "skipped": False,
+         "tp": tp, "fp": fp, "fn": fn, "new": new, **m},
+        detail_rows,
+    )
 
 
 def _write_results(
     fixture_results: list[dict],
     overall: dict,
     run_at: str,
+    detail_rows: list[dict] | None = None,
 ) -> None:
-    """Write latest.json, latest.png, and README.md."""
+    """Write latest.json, latest.png, README.md, and optionally
+    latest_detail.json."""
     _RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     # JSON
@@ -227,6 +254,12 @@ def _write_results(
     (_RESULTS_DIR / "latest.json").write_text(
         json.dumps(payload, indent=2), encoding="utf-8"
     )
+
+    # Detail JSON (only when --save-detail was passed)
+    if detail_rows is not None:
+        (_RESULTS_DIR / "latest_detail.json").write_text(
+            json.dumps(detail_rows, indent=2), encoding="utf-8"
+        )
 
     # Chart
     chart_path = _RESULTS_DIR / "latest.png"
@@ -325,6 +358,10 @@ async def main() -> None:
         help="Seconds to wait between fixtures (default: 0.5)",
     )
     parser.add_argument(
+        "--no-detail", action="store_true",
+        help="Skip writing per-ref outcomes to latest_detail.json",
+    )
+    parser.add_argument(
         "fixtures", nargs="*",
         help="JATS XML files to evaluate (default: eval/fixtures/*.xml)",
     )
@@ -343,11 +380,16 @@ async def main() -> None:
 
     run_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     fixture_results = []
+    all_detail_rows: list[dict] = []
     totals = {"tp": 0, "fp": 0, "fn": 0, "new": 0}
 
+    save_detail = not args.no_detail
     for path in paths:
-        result = await _eval_fixture(path, args.verbose, args.delay)
+        result, detail_rows = await _eval_fixture(
+            path, args.verbose, args.delay, save_detail
+        )
         fixture_results.append(result)
+        all_detail_rows.extend(detail_rows)
         for k in totals:
             totals[k] += result[k]
 
@@ -363,7 +405,10 @@ async def main() -> None:
         f"  (TP={tp} FP={fp} FN={fn} NEW={new})"
     )
 
-    _write_results(fixture_results, overall, run_at)
+    _write_results(
+        fixture_results, overall, run_at,
+        detail_rows=all_detail_rows if save_detail else None,
+    )
 
 
 if __name__ == "__main__":
