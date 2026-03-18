@@ -1,8 +1,8 @@
 # jats-ref-refinery
 
-A Python microservice that enriches bibliographic references in JATS XML with PIDs.
+A Python microservice that enriches bibliographic references in JATS XML with PIDs and missing data.
 
-It accepts a JATS XML file, resolves each `<ref>` element against CrossRef and DataCite, and injects `<pub-id>` elements where a confident match is found.
+It accepts a JATS XML file, resolves each `<ref>` element against EuropePMC, CrossRef, DataCite, or OpenAlex APIs, and injects `<pub-id>` elements where a confident match is found.
 
 ## Requirements
 
@@ -53,7 +53,7 @@ curl -X POST http://localhost:8000/enrich \
   -o enriched.xml
 ```
 
-A resolved reference gets a `<pub-id>` element added inside the `<mixed-citation>` or `<element-citation>`:
+A resolved reference gets `<pub-id>` elements added inside the `<mixed-citation>` or `<element-citation>`:
 
 ```xml
 <mixed-citation>
@@ -62,6 +62,8 @@ A resolved reference gets a `<pub-id>` element added inside the `<mixed-citation
   <pub-id pub-id-type="pmid">41416774</pub-id>
 </mixed-citation>
 ```
+
+If an `<article-title>` is missing or mistagged as `<source>` it will be corrected.
 
 #### `GET /health`
 
