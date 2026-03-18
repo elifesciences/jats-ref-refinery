@@ -108,16 +108,16 @@ def _extract_recovered(
 
 
 def _doi_version_match(a: str, b: str) -> bool:
-    """Return True if one DOI is a versioned form of the other.
+    """Return True if two DOIs refer to different versions of the same eLife
+    article.
 
     Only applies to eLife DOIs (prefix 10.7554), where versioned DOIs take
-    the form "10.7554/elife.89482.2".
+    the form "10.7554/elife.89482.2". Strips any trailing version suffix from
+    both DOIs before comparing, so .1 vs .2 and unversioned vs .2 both match.
     """
-    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
-    if not shorter.startswith("10.7554/"):
+    if not a.startswith("10.7554/") or not b.startswith("10.7554/"):
         return False
-    suffix = longer[len(shorter):]
-    return longer.startswith(shorter) and bool(re.match(r'^\.\d+$', suffix))
+    return re.sub(r'\.\d$', '', a) == re.sub(r'\.\d$', '', b)
 
 
 def _score_pid(
