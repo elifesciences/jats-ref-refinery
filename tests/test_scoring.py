@@ -177,3 +177,42 @@ def test_pages_mismatch_reduces_score():
         score_match(ref, candidate_match)
         > score_match(ref, candidate_no_match)
     )
+
+
+def test_title_from_source_skips_title_comparison():
+    """When title_from_source is True the title field is a journal name and
+    must not be compared against the candidate's article title."""
+    ref = _make_ref(
+        title="Clin Cancer Res", source="Clin Cancer Res",
+        first_author="Yokoi", year="2004", pages="2299",
+        title_from_source=True,
+    )
+    candidate = _make_candidate(
+        title="Hypoxia and tumour progression",
+        first_author="Yokoi", year="2004",
+        source="Clinical Cancer Research",
+        short_source="Clin Cancer Res",
+        pages="2299-2306",
+    )
+    assert score_match(ref, candidate) >= HIGH_CONFIDENCE_THRESHOLD
+
+
+def test_title_from_source_journal_mismatch_reduces_score():
+    """With title_from_source, a wrong journal name should hurt the score."""
+    ref = _make_ref(
+        title="Clin Cancer Res", source="Clin Cancer Res",
+        first_author="Yokoi", year="2004",
+        title_from_source=True,
+    )
+    candidate_right = _make_candidate(
+        first_author="Yokoi", year="2004",
+        source="Clinical Cancer Research", short_source="Clin Cancer Res",
+    )
+    candidate_wrong = _make_candidate(
+        first_author="Yokoi", year="2004",
+        source="Nature", short_source="Nature",
+    )
+    assert (
+        score_match(ref, candidate_right)
+        > score_match(ref, candidate_wrong)
+    )

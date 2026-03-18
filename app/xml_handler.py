@@ -14,8 +14,9 @@ from lxml import etree
 class RefFields:
     """Structured fields extracted from a single <ref> element.
 
-    Parsed fields (title, first_author, year, source, volume, pages) are used
-    for validation scoring.
+    Parsed fields are used for candidate scoring.  title_from_source is set
+    when no <article-title> was present and title was derived from <source>;
+    this changes both lookup strategy and scoring behaviour.
     """
 
     element: Any  # lxml element — the <ref> node
@@ -26,6 +27,7 @@ class RefFields:
     source: str
     volume: str
     pages: str
+    title_from_source: bool = False  # True if derived from <source>
     existing_doi: str = ""   # DOI already present in the input XML, if any
     existing_pmid: str = ""  # PMID already present in the input XML, if any
     nbk_id: str = ""         # NCBI Bookshelf ID from ext-link, if present
@@ -71,7 +73,9 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
         return "".join(el.itertext()).strip()
 
     source = _text("source")
-    title = _text("article-title") or _text("chapter-title") or source
+    raw_title = _text("article-title") or _text("chapter-title")
+    title = raw_title or source
+    title_from_source = not bool(raw_title) and bool(source)
     year = _parse_year(_text("year"))
     volume = _text("volume")
     pages = _text("fpage") or _text("elocation-id")
@@ -124,6 +128,7 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
         source=source,
         volume=volume,
         pages=pages,
+        title_from_source=title_from_source,
         existing_doi=existing_doi,
         existing_pmid=existing_pmid,
         nbk_id=nbk_id,
@@ -131,7 +136,15 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
 
 
 def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
-    """Add <pub-id> for confirmed DOIs/PMIDs."""
+    """Write enrichment results back into the XML tree and serialise.
+
+    For each ref with enrichment data:
+      - Inserts <pub-id pub-id-type="doi"> and/or <pub-id pub-id-type="pmid">
+      - If journal_name_to_add is set: renames the existing <source> element to
+        <article-title> and inserts a new <source> with correct journal name
+      - If article_title_to_add is set: inserts a new <article-title> element
+        before the existing <source>
+    """
     for ref in refs:
         if not ref.enrichment:
             continue
@@ -172,6 +185,27 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
             pmid_el = etree.SubElement(citation, "pub-id")
             pmid_el.set("pub-id-type", "pmid")
             pmid_el.text = pmid
+
+        # Fix tag structure when the original had no <article-title>.
+        # journal_name_to_add: <source> was actually the article title
+        #                        (mis-tagged): rename it and add the real
+        #                        journal name.
+        # article_title_to_add: <source> is correct; article title was just
+        #                         absent: insert it from the matched candidate.
+        journal_name = ref.enrichment.get("journal_name_to_add", "")
+        article_title = ref.enrichment.get("article_title_to_add", "")
+        source_el = citation.find("source")
+
+        if journal_name and source_el is not None:
+            source_el.tag = "article-title"
+            new_source = etree.Element("source")
+            new_source.text = journal_name
+            citation.insert(list(citation).index(source_el) + 1, new_source)
+        elif article_title and source_el is not None:
+            new_title = etree.Element("article-title")
+            new_title.text = article_title
+            new_title.tail = ", "
+            citation.insert(list(citation).index(source_el), new_title)
 
     doctype = tree.docinfo.doctype
     out = BytesIO()

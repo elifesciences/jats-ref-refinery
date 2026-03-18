@@ -40,8 +40,6 @@ class EuropePMCResolver:
             parts.append(f"AUTH:{ref.first_author}")
         if ref.year:
             parts.append(f"PUB_YEAR:{ref.year}")
-        if ref.source and ref.source != ref.title:
-            parts.append(f'JOURNAL:"{_sanitise(ref.source)}"')
 
         params = {
             "query": " AND ".join(parts),
@@ -67,6 +65,52 @@ class EuropePMCResolver:
             return []
 
         data = parse_json(resp, context=f"europepmc {ref.ref_id}")
+        if data is None:
+            return []
+        results = data.get("resultList", {}).get("result", [])
+        return [_normalise(r) for r in results]
+
+    async def lookup_by_journal(self, ref: RefFields) -> list[dict]:
+        """Query Europe PMC by journal+author+year+volume (no title field).
+
+        Used when ref.title_from_source is True — the <source> value
+        is treated as a journal name rather than an article title.
+        """
+        if not ref.source:
+            return []
+
+        parts = [f'JOURNAL:"{_sanitise(ref.source)}"']
+        if ref.first_author:
+            parts.append(f"AUTH:{ref.first_author}")
+        if ref.year:
+            parts.append(f"PUB_YEAR:{ref.year}")
+        if ref.volume:
+            parts.append(f"VOLUME:{ref.volume}")
+
+        params = {
+            "query": " AND ".join(parts),
+            "format": "json",
+            "pageSize": _ROWS,
+            "resultType": "core",
+        }
+
+        logger.debug(
+            "EuropePMC journal-query [%s]: %r",
+            ref.ref_id, params["query"],
+        )
+
+        try:
+            resp = await get_with_retry(
+                self._client,
+                _BASE,
+                params=params,
+                headers={"User-Agent": _USER_AGENT},
+            )
+        except httpx.HTTPError as exc:
+            logger.debug("EuropePMC journal-query failed: %r", exc)
+            return []
+
+        data = parse_json(resp, context=f"europepmc-journal {ref.ref_id}")
         if data is None:
             return []
         results = data.get("resultList", {}).get("result", [])
@@ -103,7 +147,17 @@ class EuropePMCResolver:
 
 def _sanitise(s: str) -> str:
     """Strip characters that break Lucene phrase queries."""
-    return re.sub(r'["\\]', " ", s).strip()
+    s = re.sub(r'["\\]', " ", s)
+    s = s.replace(".", "")
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _clean_title(s: str) -> str:
+    """Strip inline HTML markup, trailing full stop, and normalise whitespace
+    in article titles."""
+    s = re.sub(r"<[^>]+>", "", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s.rstrip(".")
 
 
 def _normalise(result: dict) -> dict:
@@ -128,7 +182,7 @@ def _normalise(result: dict) -> dict:
     return {
         "doi": doi,
         "pmid": pmid,
-        "title": result.get("title", ""),
+        "title": _clean_title(result.get("title", "")),
         "first_author": first_author,
         "year": str(result.get("pubYear", "")),
         "source": source,
