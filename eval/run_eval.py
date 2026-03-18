@@ -375,7 +375,7 @@ jq '[.[] | select(.fixture == "my-fixture")]' eval/results/latest_detail.json
 
 **Count FPs by fixture:**
 ```bash
-jq 'group_by(.fixture) | map({fixture: .[0].fixture, fp: (map(select(.outcome == "FP")) | length)})' eval/results/latest_detail.json
+jq 'group_by(.fixture) | map({{fixture: .[0].fixture, fp: (map(select(.outcome == "FP")) | length)}})' eval/results/latest_detail.json
 ```
 
 Pass `--no-detail` to skip writing this file.
