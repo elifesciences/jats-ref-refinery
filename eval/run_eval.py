@@ -108,14 +108,18 @@ def _extract_recovered(
 
 
 def _doi_version_match(a: str, b: str) -> bool:
-    """Return True if two DOIs refer to different versions of the same eLife
-    article.
+    """Return True if two DOIs refer to different versions of the same article.
 
-    Only applies to eLife DOIs (prefix 10.7554), where versioned DOIs take
-    the form "10.7554/elife.89482.2". Strips any trailing version suffix from
-    both DOIs before comparing, so .1 vs .2 and unversioned vs .2 both match.
+    Applies to publishers that use single-digit version suffixes:
+      - eLife (10.7554)      e.g. 10.7554/elife.89482.2
+      - F1000Research (10.12688)  e.g. 10.12688/f1000research.12345.2
+
+    Strips any trailing .N suffix from both DOIs before comparing.
     """
-    if not a.startswith("10.7554/") or not b.startswith("10.7554/"):
+    _VERSIONED_PREFIXES = ("10.7554/", "10.12688/")
+    if not any(a.startswith(p) for p in _VERSIONED_PREFIXES):
+        return False
+    if not any(b.startswith(p) for p in _VERSIONED_PREFIXES):
         return False
     return re.sub(r'\.\d$', '', a) == re.sub(r'\.\d$', '', b)
 
