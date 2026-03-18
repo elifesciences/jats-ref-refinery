@@ -347,6 +347,38 @@ Last run: {run_at}
 > **NEW** = PID found by the service but absent from ground truth — \
 excluded from scoring.
 > Run `uv run python eval/run_eval.py --verbose` for per-ref breakdown.
+
+## Inspecting results
+
+Per-ref outcomes are written to `results/latest_detail.json` after every run.
+Each entry has `fixture`, `ref_id`, `pid`, `outcome`, `truth`, and `recovered`.
+
+**Find all false positives:**
+```bash
+jq '[.[] | select(.outcome == "FP")]' eval/results/latest_detail.json
+```
+
+**Find all false negatives (missed PIDs):**
+```bash
+jq '[.[] | select(.outcome == "FN")]' eval/results/latest_detail.json
+```
+
+**Find all outcomes for a specific ref:**
+```bash
+jq '[.[] | select(.ref_id == "c6")]' eval/results/latest_detail.json
+```
+
+**Find all outcomes for a specific fixture:**
+```bash
+jq '[.[] | select(.fixture == "my-fixture")]' eval/results/latest_detail.json
+```
+
+**Count FPs by fixture:**
+```bash
+jq 'group_by(.fixture) | map({fixture: .[0].fixture, fp: (map(select(.outcome == "FP")) | length)})' eval/results/latest_detail.json
+```
+
+Pass `--no-detail` to skip writing this file.
 """
     _README.write_text(readme, encoding="utf-8")
 
