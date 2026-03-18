@@ -40,8 +40,6 @@ class EuropePMCResolver:
             parts.append(f"AUTH:{ref.first_author}")
         if ref.year:
             parts.append(f"PUB_YEAR:{ref.year}")
-        if ref.source and ref.source != ref.title:
-            parts.append(f'JOURNAL:"{_sanitise(ref.source)}"')
 
         params = {
             "query": " AND ".join(parts),
