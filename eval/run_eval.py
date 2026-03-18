@@ -23,6 +23,7 @@ Usage:
 import argparse
 import asyncio
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from io import BytesIO
@@ -106,6 +107,23 @@ def _extract_recovered(
     return recovered
 
 
+def _doi_version_match(a: str, b: str) -> bool:
+    """Return True if two DOIs refer to different versions of the same article.
+
+    Applies to publishers that use single-digit version suffixes:
+      - eLife (10.7554)      e.g. 10.7554/elife.89482.2
+      - F1000Research (10.12688)  e.g. 10.12688/f1000research.12345.2
+
+    Strips any trailing .N suffix from both DOIs before comparing.
+    """
+    _VERSIONED_PREFIXES = ("10.7554/", "10.12688/")
+    if not any(a.startswith(p) for p in _VERSIONED_PREFIXES):
+        return False
+    if not any(b.startswith(p) for p in _VERSIONED_PREFIXES):
+        return False
+    return re.sub(r'\.\d$', '', a) == re.sub(r'\.\d$', '', b)
+
+
 def _score_pid(
     truth: dict[str, str],
     recovered: dict[str, str],
@@ -121,7 +139,9 @@ def _score_pid(
     t = truth.get(pid, "")
     r = recovered.get(pid, "")
     if t and r:
-        return "TP" if t == r else "FP"
+        if t == r or _doi_version_match(t, r):
+            return "TP"
+        return "FP"
     if t and not r:
         return "FN"
     if not t and r:
@@ -347,6 +367,38 @@ Last run: {run_at}
 > **NEW** = PID found by the service but absent from ground truth — \
 excluded from scoring.
 > Run `uv run python eval/run_eval.py --verbose` for per-ref breakdown.
+
+## Inspecting results
+
+Per-ref outcomes are written to `results/latest_detail.json` after every run.
+Each entry has `fixture`, `ref_id`, `pid`, `outcome`, `truth`, and `recovered`.
+
+**Find all false positives:**
+```bash
+jq '[.[] | select(.outcome == "FP")]' eval/results/latest_detail.json
+```
+
+**Find all false negatives (missed PIDs):**
+```bash
+jq '[.[] | select(.outcome == "FN")]' eval/results/latest_detail.json
+```
+
+**Find all outcomes for a specific ref:**
+```bash
+jq '[.[] | select(.ref_id == "c6")]' eval/results/latest_detail.json
+```
+
+**Find all outcomes for a specific fixture:**
+```bash
+jq '[.[] | select(.fixture == "my-fixture")]' eval/results/latest_detail.json
+```
+
+**Count FPs by fixture:**
+```bash
+jq 'group_by(.fixture) | map({{fixture: .[0].fixture, fp: (map(select(.outcome == "FP")) | length)}})' eval/results/latest_detail.json
+```
+
+Pass `--no-detail` to skip writing this file.
 """
     _README.write_text(readme, encoding="utf-8")
 
