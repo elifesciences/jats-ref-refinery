@@ -28,7 +28,11 @@ from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 
+import logging
+
 import matplotlib.pyplot as plt
+
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
 from lxml import etree
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
