@@ -147,8 +147,8 @@ def _build_epmc_enrichment(
     """Build the enrichment dict for a Europe PMC match.
 
     When title_from_source is set, also include the tag-fix instruction:
-      source_was_title=True  → journal_name_to_add  (rename <source>, add journal)
-      source_was_title=False → article_title_to_add (insert missing title)
+      source_was_title=True: journal_name_to_add (rename <source>, add journal)
+      source_was_title=False: article_title_to_add (insert missing title)
     """
     enrichment: dict = {
         "doi": best["doi"],
@@ -255,6 +255,11 @@ async def _lookup_doi(
                 return enrichment
         else:
             logger.debug("EuropePMC [%s]: no results returned", ref.ref_id)
+
+        # score_match cannot compare titles, CrossRef and DataCite results
+        # cannot be reliably evaluated
+        if ref.title_from_source:
+            return None
 
         # CrossRef fallback
         source = ref.source if ref.source != ref.title else ""
