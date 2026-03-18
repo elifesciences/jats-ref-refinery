@@ -147,7 +147,9 @@ class EuropePMCResolver:
 
 def _sanitise(s: str) -> str:
     """Strip characters that break Lucene phrase queries."""
-    return re.sub(r'["\\]', " ", s).strip()
+    s = re.sub(r'["\\]', " ", s)
+    s = s.replace(".", "")
+    return re.sub(r"\s+", " ", s).strip()
 
 
 def _clean_title(s: str) -> str:
