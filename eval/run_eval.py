@@ -23,6 +23,7 @@ Usage:
 import argparse
 import asyncio
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from io import BytesIO
@@ -106,6 +107,19 @@ def _extract_recovered(
     return recovered
 
 
+def _doi_version_match(a: str, b: str) -> bool:
+    """Return True if one DOI is a versioned form of the other.
+
+    Only applies to eLife DOIs (prefix 10.7554), where versioned DOIs take
+    the form "10.7554/elife.89482.2".
+    """
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    if not shorter.startswith("10.7554/"):
+        return False
+    suffix = longer[len(shorter):]
+    return longer.startswith(shorter) and bool(re.match(r'^\.\d+$', suffix))
+
+
 def _score_pid(
     truth: dict[str, str],
     recovered: dict[str, str],
@@ -121,7 +135,9 @@ def _score_pid(
     t = truth.get(pid, "")
     r = recovered.get(pid, "")
     if t and r:
-        return "TP" if t == r else "FP"
+        if t == r or _doi_version_match(t, r):
+            return "TP"
+        return "FP"
     if t and not r:
         return "FN"
     if not t and r:
