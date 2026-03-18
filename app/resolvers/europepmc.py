@@ -153,9 +153,11 @@ def _sanitise(s: str) -> str:
 
 
 def _clean_title(s: str) -> str:
-    """Strip inline HTML markup and normalise whitespace in article titles."""
+    """Strip inline HTML markup, trailing full stop, and normalise whitespace
+    in article titles."""
     s = re.sub(r"<[^>]+>", "", s)
-    return re.sub(r"\s+", " ", s).strip()
+    s = re.sub(r"\s+", " ", s).strip()
+    return s.rstrip(".")
 
 
 def _normalise(result: dict) -> dict:
