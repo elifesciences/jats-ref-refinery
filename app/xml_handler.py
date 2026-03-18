@@ -27,7 +27,7 @@ class RefFields:
     source: str
     volume: str
     pages: str
-    title_from_source: bool = False  # True when no <article-title> and title == source
+    title_from_source: bool = False  # True if derived from <source>
     existing_doi: str = ""   # DOI already present in the input XML, if any
     existing_pmid: str = ""  # PMID already present in the input XML, if any
     nbk_id: str = ""         # NCBI Bookshelf ID from ext-link, if present
@@ -141,7 +141,7 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
     For each ref with enrichment data:
       - Inserts <pub-id pub-id-type="doi"> and/or <pub-id pub-id-type="pmid">
       - If journal_name_to_add is set: renames the existing <source> element to
-        <article-title> and inserts a new <source> with the correct journal name
+        <article-title> and inserts a new <source> with correct journal name
       - If article_title_to_add is set: inserts a new <article-title> element
         before the existing <source>
     """
@@ -187,10 +187,10 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
             pmid_el.text = pmid
 
         # Fix tag structure when the original had no <article-title>.
-        # journal_name_to_add  → <source> was actually the article title
-        #                         (mis-tagged): rename it and add the real
-        #                         journal name.
-        # article_title_to_add → <source> is correct; article title was just
+        # journal_name_to_add: <source> was actually the article title
+        #                        (mis-tagged): rename it and add the real
+        #                        journal name.
+        # article_title_to_add: <source> is correct; article title was just
         #                         absent: insert it from the matched candidate.
         journal_name = ref.enrichment.get("journal_name_to_add", "")
         article_title = ref.enrichment.get("article_title_to_add", "")
