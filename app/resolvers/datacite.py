@@ -5,6 +5,7 @@ Covers datasets, software, Zenodo preprints, and other non-journal content.
 """
 
 import logging
+from typing import Optional
 
 import httpx
 
@@ -49,6 +50,25 @@ class DataCiteResolver:
             return []
         items = data.get("data", [])
         return [_normalise(item) for item in items]
+
+    async def lookup_by_doi(self, doi: str) -> Optional[dict]:
+        """Fetch DataCite record by DOI.
+
+        Returns a normalised candidate dict, or None if not found.
+        """
+        url = f"{_BASE}/{doi}"
+        logger.debug("DataCite verify doi=%s", doi)
+        try:
+            resp = await get_with_retry(self._client, url)
+        except httpx.HTTPError as exc:
+            logger.debug("DataCite lookup_by_doi failed: %r", exc)
+            return None
+
+        data = parse_json(resp, context=f"datacite doi:{doi}")
+        if data is None:
+            return None
+        item = data.get("data")
+        return _normalise(item) if item else None
 
 
 def _normalise(item: dict) -> dict:

@@ -116,6 +116,64 @@ class EuropePMCResolver:
         results = data.get("resultList", {}).get("result", [])
         return [_normalise(r) for r in results]
 
+    async def lookup_by_doi(self, doi: str) -> Optional[dict]:
+        """Fetch ePMC record by DOI.
+
+        Returns a normalised candidate dict, or None.
+        """
+        params = {
+            "query": f"DOI:{doi}",
+            "format": "json",
+            "pageSize": 1,
+            "resultType": "core",
+        }
+        logger.debug("EuropePMC verify doi=%s", doi)
+        try:
+            resp = await get_with_retry(
+                self._client,
+                _BASE,
+                params=params,
+                headers={"User-Agent": _USER_AGENT},
+            )
+        except httpx.HTTPError as exc:
+            logger.debug("EuropePMC lookup_by_doi failed: %r", exc)
+            return None
+
+        data = parse_json(resp, context=f"europepmc doi:{doi}")
+        if data is None:
+            return None
+        results = data.get("resultList", {}).get("result", [])
+        return _normalise(results[0]) if results else None
+
+    async def lookup_by_pmid(self, pmid: str) -> Optional[dict]:
+        """Fetch ePMC record by PMID.
+
+        Returns a normalised candidate dict, or None.
+        """
+        params = {
+            "query": f"EXT_ID:{pmid} SRC:MED",
+            "format": "json",
+            "pageSize": 1,
+            "resultType": "core",
+        }
+        logger.debug("EuropePMC verify pmid=%s", pmid)
+        try:
+            resp = await get_with_retry(
+                self._client,
+                _BASE,
+                params=params,
+                headers={"User-Agent": _USER_AGENT},
+            )
+        except httpx.HTTPError as exc:
+            logger.debug("EuropePMC lookup_by_pmid failed: %r", exc)
+            return None
+
+        data = parse_json(resp, context=f"europepmc pmid:{pmid}")
+        if data is None:
+            return None
+        results = data.get("resultList", {}).get("result", [])
+        return _normalise(results[0]) if results else None
+
     async def _lookup_by_nbk_id(
         self, nbk_id: str, ref_id: str
     ) -> Optional[dict]:
