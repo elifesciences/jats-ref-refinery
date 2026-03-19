@@ -2,38 +2,13 @@
 
 from __future__ import annotations
 
-import dataclasses
 import re
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any
 
 from lxml import etree
 
-from app.types import EnrichmentResult
-
-
-@dataclasses.dataclass
-class RefFields:
-    """Structured fields extracted from a single <ref> element.
-
-    Parsed fields are used for candidate scoring.  title_from_source is set
-    when no <article-title> was present and title was derived from <source>;
-    this changes both lookup strategy and scoring behaviour.
-    """
-
-    element: Any  # lxml element — the <ref> node
-    ref_id: str
-    title: str
-    first_author: str
-    year: str
-    source: str
-    volume: str
-    pages: str
-    title_from_source: bool = False  # True if derived from <source>
-    existing_doi: str = ""   # DOI already present in the input XML, if any
-    existing_pmid: str = ""  # PMID already present in the input XML, if any
-    nbk_id: str = ""         # NCBI Bookshelf ID from ext-link, if present
-    enrichment: Optional[EnrichmentResult] = None  # populated by enricher
+from app.types import EnrichmentResult, RefFields
 
 
 def parse_refs(raw_xml: bytes) -> tuple[list[RefFields], Any]:

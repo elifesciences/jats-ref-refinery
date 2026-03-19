@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from app.resolvers.datacite import DataCiteResolver, _normalise
-from app.xml_handler import RefFields
+from app.types import RefFields
 
 _PATCH = "app.resolvers.datacite.get_with_retry"
 

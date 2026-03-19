@@ -24,8 +24,8 @@ from app.resolvers.datacite import DataCiteResolver
 from app.resolvers.europepmc import EuropePMCResolver
 from app.resolvers.openalex import OpenAlexResolver
 from app.scoring import score_match, HIGH_CONFIDENCE_THRESHOLD
-from app.types import EnrichmentResult
-from app.xml_handler import parse_refs, build_enriched_xml, RefFields
+from app.types import EnrichmentResult, RefFields
+from app.xml_handler import parse_refs, build_enriched_xml
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("httpcore").setLevel(logging.WARNING)

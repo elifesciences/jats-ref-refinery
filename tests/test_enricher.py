@@ -1,7 +1,7 @@
 """Tests for enricher helpers."""
 
 from app.enricher import _doi_version_match, _build_suspect_enrichment
-from app.xml_handler import RefFields
+from app.types import RefFields
 
 
 def _make_ref(**kwargs) -> RefFields:

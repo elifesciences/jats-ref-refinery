@@ -11,7 +11,7 @@ from app.resolvers.crossref import (
     _normalise,
     _sanitise_query,
 )
-from app.xml_handler import RefFields
+from app.types import RefFields
 
 _PATCH = "app.resolvers.crossref.get_with_retry"
 

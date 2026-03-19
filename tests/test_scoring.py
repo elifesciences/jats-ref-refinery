@@ -1,7 +1,7 @@
 """Tests for confidence scoring."""
 
 from app.scoring import score_match, HIGH_CONFIDENCE_THRESHOLD
-from app.xml_handler import RefFields
+from app.types import RefFields
 
 
 def _make_ref(**kwargs) -> RefFields:

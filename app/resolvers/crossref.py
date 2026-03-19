@@ -12,7 +12,7 @@ from typing import Optional
 import httpx
 
 from app.http_utils import get_with_retry, parse_json
-from app.xml_handler import RefFields
+from app.types import RefFields
 
 logger = logging.getLogger(__name__)
 

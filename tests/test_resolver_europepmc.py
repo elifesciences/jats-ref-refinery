@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from app.resolvers.europepmc import EuropePMCResolver, _normalise, _clean_title
-from app.xml_handler import RefFields
+from app.types import RefFields
 
 _PATCH = "app.resolvers.europepmc.get_with_retry"
 
