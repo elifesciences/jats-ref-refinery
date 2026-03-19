@@ -65,10 +65,7 @@ class EuropePMCResolver:
             return []
 
         data = parse_json(resp, context=f"europepmc {ref.ref_id}")
-        if data is None:
-            return []
-        results = data.get("resultList", {}).get("result", [])
-        return [_normalise(r) for r in results]
+        return _parse_results(data)
 
     async def lookup_by_journal(self, ref: RefFields) -> list[dict]:
         """Query Europe PMC by journal+author+year+volume (no title field).
@@ -111,10 +108,7 @@ class EuropePMCResolver:
             return []
 
         data = parse_json(resp, context=f"europepmc-journal {ref.ref_id}")
-        if data is None:
-            return []
-        results = data.get("resultList", {}).get("result", [])
-        return [_normalise(r) for r in results]
+        return _parse_results(data)
 
     async def lookup_by_doi(self, doi: str) -> Optional[dict]:
         """Fetch ePMC record by DOI.
@@ -140,10 +134,8 @@ class EuropePMCResolver:
             return None
 
         data = parse_json(resp, context=f"europepmc doi:{doi}")
-        if data is None:
-            return None
-        results = data.get("resultList", {}).get("result", [])
-        return _normalise(results[0]) if results else None
+        results = _parse_results(data)
+        return results[0] if results else None
 
     async def lookup_by_pmid(self, pmid: str) -> Optional[dict]:
         """Fetch ePMC record by PMID.
@@ -169,10 +161,8 @@ class EuropePMCResolver:
             return None
 
         data = parse_json(resp, context=f"europepmc pmid:{pmid}")
-        if data is None:
-            return None
-        results = data.get("resultList", {}).get("result", [])
-        return _normalise(results[0]) if results else None
+        results = _parse_results(data)
+        return results[0] if results else None
 
     async def _lookup_by_nbk_id(
         self, nbk_id: str, ref_id: str
@@ -197,10 +187,18 @@ class EuropePMCResolver:
             return None
 
         data = parse_json(resp, context=f"europepmc nbk {nbk_id}")
-        if data is None:
-            return None
-        results = data.get("resultList", {}).get("result", [])
-        return _normalise(results[0]) if results else None
+        results = _parse_results(data)
+        return results[0] if results else None
+
+
+def _parse_results(data: Optional[dict]) -> list[dict]:
+    """Extract and normalise the result list from a Europe PMC response."""
+    if data is None:
+        return []
+    return [
+        _normalise(r)
+        for r in data.get("resultList", {}).get("result", [])
+    ]
 
 
 def _sanitise(s: str) -> str:
