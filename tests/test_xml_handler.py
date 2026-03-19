@@ -148,7 +148,9 @@ def test_italic_text_included_in_title():
 def test_build_enriched_xml_adds_doi():
     raw = FIXTURE.read_bytes()
     refs, tree = parse_refs(raw)
-    refs[0].enrichment = EnrichmentResult(doi="10.1234/test", resolver="crossref")
+    refs[0].enrichment = EnrichmentResult(
+        doi="10.1234/test", resolver="crossref"
+    )
 
     result = build_enriched_xml(tree, refs)
     assert b"10.1234/test" in result
@@ -157,7 +159,9 @@ def test_build_enriched_xml_adds_doi():
 def test_build_enriched_xml_adds_pmid():
     raw = FIXTURE.read_bytes()
     refs, tree = parse_refs(raw)
-    refs[0].enrichment = EnrichmentResult(pmid="36375006", resolver="europepmc")
+    refs[0].enrichment = EnrichmentResult(
+        pmid="36375006", resolver="europepmc"
+    )
 
     result = build_enriched_xml(tree, refs)
     assert b"36375006" in result
@@ -183,7 +187,9 @@ def test_build_enriched_xml_conflict_comment():
         </ref>
       </ref-list></back>
     </article>""")
-    refs[0].enrichment = EnrichmentResult(doi="10.1234/new", resolver="crossref")
+    refs[0].enrichment = EnrichmentResult(
+        doi="10.1234/new", resolver="crossref"
+    )
 
     result = build_enriched_xml(tree, refs)
     assert b"conflicts with existing DOI" in result
@@ -210,7 +216,10 @@ def test_build_enriched_xml_inserts_article_title_before_source():
     )
 
     result = build_enriched_xml(tree, refs)
-    assert b"<article-title>Hypoxia and tumour progression</article-title>" in result
+    assert (
+        b"<article-title>Hypoxia and tumour progression</article-title>"
+        in result
+    )
     assert b"<source>Clin Cancer Res</source>" in result
     # article-title must appear before source
     assert result.index(b"<article-title>") < result.index(b"<source>")
@@ -234,5 +243,47 @@ def test_build_enriched_xml_renames_source_to_article_title():
     )
 
     result = build_enriched_xml(tree, refs)
-    assert b"<article-title>Hypoxia and tumour progression</article-title>" in result
+    assert (
+        b"<article-title>Hypoxia and tumour progression</article-title>"
+        in result
+    )
     assert b"<source>Clinical Cancer Research</source>" in result
+
+
+def test_build_enriched_xml_suspect_doi_adds_comment_only():
+    refs, tree = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <article-title>Title</article-title>
+            <pub-id pub-id-type="doi">10.9999/suspect</pub-id>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    refs[0].enrichment = EnrichmentResult(suspect_doi="10.1234/correct")
+
+    result = build_enriched_xml(tree, refs)
+    assert b"existing DOI may be incorrect" in result
+    assert b"10.1234/correct" in result
+    # Must not insert a new pub-id for the suggested DOI
+    assert result.count(b'pub-id-type="doi"') == 1
+
+
+def test_build_enriched_xml_suspect_pmid_adds_comment_only():
+    refs, tree = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <article-title>Title</article-title>
+            <pub-id pub-id-type="pmid">99999</pub-id>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    refs[0].enrichment = EnrichmentResult(suspect_pmid="11111")
+
+    result = build_enriched_xml(tree, refs)
+    assert b"existing PMID may be incorrect" in result
+    assert b"11111" in result
+    assert result.count(b'pub-id-type="pmid"') == 1

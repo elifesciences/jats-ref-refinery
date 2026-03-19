@@ -244,3 +244,64 @@ async def test_nbk_lookup_empty_falls_through_to_title_search():
 
     assert len(results) == 1
     assert results[0].get("exact_match") is not True
+
+
+# --- lookup_by_doi / lookup_by_pmid ---
+
+@pytest.mark.anyio
+async def test_lookup_by_doi_returns_candidate():
+    mock_resp = _epmc_response(_epmc_result(
+        doi="10.7554/elife.89482", pmid=12345678,
+        title="A great paper",
+    ))
+    with patch(_PATCH, new=AsyncMock(return_value=mock_resp)):
+        async with httpx.AsyncClient() as client:
+            resolver = EuropePMCResolver(client)
+            result = await resolver.lookup_by_doi("10.7554/elife.89482")
+
+    assert result is not None
+    assert result["doi"] == "10.7554/elife.89482"
+    assert result["pmid"] == "12345678"
+
+
+@pytest.mark.anyio
+async def test_lookup_by_doi_returns_none_when_no_results():
+    with patch(_PATCH, new=AsyncMock(return_value=_epmc_response())):
+        async with httpx.AsyncClient() as client:
+            resolver = EuropePMCResolver(client)
+            result = await resolver.lookup_by_doi("10.9999/notfound")
+    assert result is None
+
+
+@pytest.mark.anyio
+async def test_lookup_by_doi_returns_none_on_http_error():
+    with patch(_PATCH, side_effect=httpx.ConnectError("failed")):
+        async with httpx.AsyncClient() as client:
+            resolver = EuropePMCResolver(client)
+            result = await resolver.lookup_by_doi("10.1234/foo")
+    assert result is None
+
+
+@pytest.mark.anyio
+async def test_lookup_by_pmid_returns_candidate():
+    mock_resp = _epmc_response(_epmc_result(
+        doi="10.7554/elife.89482", pmid=12345678,
+        title="A great paper",
+    ))
+    with patch(_PATCH, new=AsyncMock(return_value=mock_resp)):
+        async with httpx.AsyncClient() as client:
+            resolver = EuropePMCResolver(client)
+            result = await resolver.lookup_by_pmid("12345678")
+
+    assert result is not None
+    assert result["pmid"] == "12345678"
+    assert result["doi"] == "10.7554/elife.89482"
+
+
+@pytest.mark.anyio
+async def test_lookup_by_pmid_returns_none_when_no_results():
+    with patch(_PATCH, new=AsyncMock(return_value=_epmc_response())):
+        async with httpx.AsyncClient() as client:
+            resolver = EuropePMCResolver(client)
+            result = await resolver.lookup_by_pmid("99999999")
+    assert result is None
