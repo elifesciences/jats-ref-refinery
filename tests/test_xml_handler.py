@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from app.types import EnrichmentResult
 from app.xml_handler import parse_refs, build_enriched_xml
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample.xml"
@@ -147,7 +148,7 @@ def test_italic_text_included_in_title():
 def test_build_enriched_xml_adds_doi():
     raw = FIXTURE.read_bytes()
     refs, tree = parse_refs(raw)
-    refs[0].enrichment = {"doi": "10.1234/test", "resolver": "crossref"}
+    refs[0].enrichment = EnrichmentResult(doi="10.1234/test", resolver="crossref")
 
     result = build_enriched_xml(tree, refs)
     assert b"10.1234/test" in result
@@ -156,9 +157,7 @@ def test_build_enriched_xml_adds_doi():
 def test_build_enriched_xml_adds_pmid():
     raw = FIXTURE.read_bytes()
     refs, tree = parse_refs(raw)
-    refs[0].enrichment = {
-        "doi": None, "pmid": "36375006", "resolver": "europepmc"
-    }
+    refs[0].enrichment = EnrichmentResult(pmid="36375006", resolver="europepmc")
 
     result = build_enriched_xml(tree, refs)
     assert b"36375006" in result
@@ -184,7 +183,7 @@ def test_build_enriched_xml_conflict_comment():
         </ref>
       </ref-list></back>
     </article>""")
-    refs[0].enrichment = {"doi": "10.1234/new", "resolver": "crossref"}
+    refs[0].enrichment = EnrichmentResult(doi="10.1234/new", resolver="crossref")
 
     result = build_enriched_xml(tree, refs)
     assert b"conflicts with existing DOI" in result
@@ -204,11 +203,11 @@ def test_build_enriched_xml_inserts_article_title_before_source():
         </ref>
       </ref-list></back>
     </article>""")
-    refs[0].enrichment = {
-        "doi": "10.1158/1078-0432.ccr-03-0488",
-        "resolver": "europepmc",
-        "article_title_to_add": "Hypoxia and tumour progression",
-    }
+    refs[0].enrichment = EnrichmentResult(
+        doi="10.1158/1078-0432.ccr-03-0488",
+        resolver="europepmc",
+        article_title_to_add="Hypoxia and tumour progression",
+    )
 
     result = build_enriched_xml(tree, refs)
     assert b"<article-title>Hypoxia and tumour progression</article-title>" in result
@@ -228,11 +227,11 @@ def test_build_enriched_xml_renames_source_to_article_title():
         </ref>
       </ref-list></back>
     </article>""")
-    refs[0].enrichment = {
-        "doi": "10.1158/1078-0432.ccr-03-0488",
-        "resolver": "europepmc",
-        "journal_name_to_add": "Clinical Cancer Research",
-    }
+    refs[0].enrichment = EnrichmentResult(
+        doi="10.1158/1078-0432.ccr-03-0488",
+        resolver="europepmc",
+        journal_name_to_add="Clinical Cancer Research",
+    )
 
     result = build_enriched_xml(tree, refs)
     assert b"<article-title>Hypoxia and tumour progression</article-title>" in result

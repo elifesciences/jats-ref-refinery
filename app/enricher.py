@@ -2,13 +2,18 @@
 
 Pipeline:
   1. Parse structured fields from <ref> via xml_handler
-  2. If neither DOI nor PMID known: query Europe PMC -> CrossRef -> DataCite
+  2a. If DOI or PMID already present: fetch by PID and score against ref fields
+      - High confidence: verified; resolve any missing PID
+      - Low confidence: run bibliographic lookup (step 2b) and flag differences
+        as XML comments
+  2b. If neither DOI nor PMID known: query Europe PMC -> CrossRef -> DataCite
   3. If one of DOI/PMID known: resolve the other via OpenAlex
   4. No confident match: leave ref unchanged
 """
 
 import asyncio
 import logging
+import re
 from typing import Optional
 
 import httpx
@@ -19,6 +24,7 @@ from app.resolvers.datacite import DataCiteResolver
 from app.resolvers.europepmc import EuropePMCResolver
 from app.resolvers.openalex import OpenAlexResolver
 from app.scoring import score_match, HIGH_CONFIDENCE_THRESHOLD
+from app.types import EnrichmentResult
 from app.xml_handler import parse_refs, build_enriched_xml, RefFields
 
 logging.basicConfig(level=logging.DEBUG)
@@ -37,8 +43,7 @@ async def enrich_jats(raw_xml: bytes) -> bytes:
         europepmc = EuropePMCResolver(client)
         openalex = OpenAlexResolver(client)
         cache = get_cache()
-        # Limit concurrent API requests
-        semaphore = asyncio.Semaphore(3)
+        semaphore = asyncio.Semaphore(3)  # Limit concurrent API requests
 
         tasks = [
             _enrich_ref(
@@ -67,27 +72,85 @@ async def _enrich_ref(
     openalex: OpenAlexResolver,
     cache,
     semaphore: asyncio.Semaphore,
-) -> Optional[dict]:
-    """Return an enrichment dict for a single ref, or None.
+) -> Optional[EnrichmentResult]:
+    """Return an EnrichmentResult for a single ref, or None.
 
     Steps:
-      1. If neither DOI nor PMID: query Europe PMC -> CrossRef -> DataCite
-      2. If exactly one of DOI/PMID is known: resolve the other via OpenAlex
+      2a. Existing PID: fetch by PID, score against ref fields.
+          Verified: resolve missing PID.
+          Suspect: bibliographic lookup, flag differences as
+            suspect_doi / suspect_pmid (XML comment only).
+      2b. No PIDs: bibliographic lookup via Europe PMC -> CrossRef -> DataCite.
+      3.  One PID known: resolve the other via OpenAlex.
     """
     doi = ref.existing_doi
     pmid = ref.existing_pmid
     lookup_result: Optional[dict] = None
 
-    # Step 1: bibliographic lookup when we have no PIDs
-    if not doi and not pmid:
-        lookup_result = await _lookup_doi(
-            ref, crossref, datacite, europepmc, cache, semaphore
+    if doi or pmid:
+        # Step 2a: verify existing PID via direct lookup
+        candidate = await _fetch_by_pid(
+            doi, pmid, europepmc, crossref, datacite, cache, semaphore
         )
-        if lookup_result:
-            doi = lookup_result["doi"] or ""
-            pmid = lookup_result.get("pmid", "")
+        score = score_match(ref, candidate) if candidate else 0.0
+        logger.debug(
+            "PID verify [%s]: score=%.3f doi=%r pmid=%r",
+            ref.ref_id, score, doi, pmid,
+        )
 
-    # Step 2: use OpenAlex to fill in whichever ID is missing
+        if score < HIGH_CONFIDENCE_THRESHOLD:
+            # Suspect — run bibliographic pipeline and flag any differences
+            lookup_result = await _lookup_doi(
+                ref, crossref, datacite, europepmc, cache, semaphore
+            )
+            if not lookup_result:
+                return None
+            return _build_suspect_enrichment(ref, lookup_result)
+
+        # Verified — resolve any missing PID
+        enrichment = EnrichmentResult()
+
+        # Cross-check PMID from candidate for free (DOI lookup returns both)
+        if doi and pmid and candidate:
+            candidate_pmid = candidate.get("pmid", "")
+            if candidate_pmid and candidate_pmid != pmid:
+                enrichment.suspect_pmid = candidate_pmid
+
+        if doi and not pmid:
+            new_pmid = (candidate.get("pmid", "") if candidate else "")
+            if not new_pmid:
+                oa = await _lookup_via_openalex(
+                    doi, "", openalex, cache, semaphore
+                )
+                new_pmid = (oa or {}).get("pmid", "")
+            enrichment.pmid = new_pmid
+
+        if pmid and not doi:
+            # Candidate from EPMC lookup_by_pmid includes the DOI
+            new_doi = (candidate.get("doi", "") if candidate else "")
+            if not new_doi:
+                oa = await _lookup_via_openalex(
+                    "", pmid, openalex, cache, semaphore
+                )
+                new_doi = (oa or {}).get("doi", "")
+            enrichment.doi = new_doi
+
+        if not any([
+            enrichment.doi, enrichment.pmid,
+            enrichment.suspect_doi, enrichment.suspect_pmid,
+        ]):
+            return None
+        return enrichment
+
+    # Step 2b: no existing PIDs — bibliographic lookup
+    lookup_result = await _lookup_doi(
+        ref, crossref, datacite, europepmc, cache, semaphore
+    )
+    if lookup_result:
+        doi = lookup_result["doi"] or ""
+        pmid = lookup_result.get("pmid", "")
+
+    # Step 3: use OpenAlex to fill in whichever ID is missing
     if (doi and not pmid) or (pmid and not doi):
         oa_result = await _lookup_via_openalex(
             doi, pmid, openalex, cache, semaphore
@@ -96,19 +159,97 @@ async def _enrich_ref(
             doi = doi or oa_result.get("doi", "")
             pmid = pmid or oa_result.get("pmid", "")
 
-    new_doi = doi if doi != ref.existing_doi else None
-    new_pmid = pmid if pmid != ref.existing_pmid else None
+    new_doi = doi if doi != ref.existing_doi else ""
+    new_pmid = pmid if pmid != ref.existing_pmid else ""
 
     if not new_doi and not new_pmid:
         return None
 
-    enrichment: dict = {"doi": new_doi, "pmid": new_pmid}
+    enrichment = EnrichmentResult(doi=new_doi, pmid=new_pmid)
     if lookup_result:
-        # Pass through tag-fix instructions for build_enriched_xml
-        for key in ("resolver", "article_title_to_add", "journal_name_to_add"):
-            if key in lookup_result:
-                enrichment[key] = lookup_result[key]
+        enrichment.resolver = lookup_result.get("resolver", "")
+        enrichment.article_title_to_add = lookup_result.get(
+            "article_title_to_add", ""
+        )
+        enrichment.journal_name_to_add = lookup_result.get(
+            "journal_name_to_add", ""
+        )
     return enrichment
+
+
+def _build_suspect_enrichment(
+    ref: RefFields,
+    lookup_result: dict,
+) -> Optional[EnrichmentResult]:
+    """Build an EnrichmentResult flagging existing PIDs as potentially wrong.
+
+    Only flags PIDs that are present in the source XML and differ from what
+    the bibliographic lookup found.  Returns None if nothing to flag.
+    """
+    enrichment = EnrichmentResult()
+    suggested_doi = lookup_result.get("doi", "")
+    suggested_pmid = lookup_result.get("pmid", "")
+
+    if ref.existing_doi and suggested_doi and (
+        suggested_doi.lower() != ref.existing_doi.lower()
+        and not _doi_version_match(suggested_doi, ref.existing_doi)
+    ):
+        enrichment.suspect_doi = suggested_doi
+    if ref.existing_pmid and suggested_pmid and (
+        suggested_pmid != ref.existing_pmid
+    ):
+        enrichment.suspect_pmid = suggested_pmid
+
+    if not enrichment.suspect_doi and not enrichment.suspect_pmid:
+        return None
+    return enrichment
+
+
+def _doi_version_match(a: str, b: str) -> bool:
+    """Return True if two DOIs refer to different versions of the same article.
+
+    Applies to publishers that append a single-digit version suffix:
+      - eLife (10.7554/)       e.g. 10.7554/elife.89482.2
+      - F1000Research (10.12688/)  e.g. 10.12688/f1000research.12345.2
+    """
+    _VERSIONED_PREFIXES = ("10.7554/", "10.12688/")
+    a, b = a.lower(), b.lower()
+    if not any(a.startswith(p) for p in _VERSIONED_PREFIXES):
+        return False
+    if not any(b.startswith(p) for p in _VERSIONED_PREFIXES):
+        return False
+    return re.sub(r'\.\d$', '', a) == re.sub(r'\.\d$', '', b)
+
+
+async def _fetch_by_pid(
+    doi: str,
+    pmid: str,
+    europepmc: EuropePMCResolver,
+    crossref: CrossRefResolver,
+    datacite: DataCiteResolver,
+    cache,
+    semaphore: asyncio.Semaphore,
+) -> Optional[dict]:
+    """Fetch a normalised candidate dict for a known PID, or None."""
+    cache_key = f"pid|doi:{doi}" if doi else f"pid|pmid:{pmid}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    async with semaphore:
+        candidate: Optional[dict] = None
+        if doi:
+            candidate = await europepmc.lookup_by_doi(doi)
+            if not candidate:
+                candidate = await crossref.lookup_by_doi(doi)
+            if not candidate:
+                candidate = await datacite.lookup_by_doi(doi)
+        elif pmid:
+            candidate = await europepmc.lookup_by_pmid(pmid)
+
+    if candidate:
+        cache.set(cache_key, candidate)
+    return candidate
 
 
 def _best_epmc_candidate(
