@@ -16,7 +16,7 @@ import re
 
 from rapidfuzz import fuzz
 
-from app.xml_handler import RefFields
+from app.types import RefFields
 
 HIGH_CONFIDENCE_THRESHOLD = 0.75
 

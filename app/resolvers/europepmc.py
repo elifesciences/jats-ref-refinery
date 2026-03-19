@@ -10,7 +10,7 @@ from typing import Optional
 import httpx
 
 from app.http_utils import get_with_retry, parse_json
-from app.xml_handler import RefFields
+from app.types import RefFields
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +65,7 @@ class EuropePMCResolver:
             return []
 
         data = parse_json(resp, context=f"europepmc {ref.ref_id}")
-        if data is None:
-            return []
-        results = data.get("resultList", {}).get("result", [])
-        return [_normalise(r) for r in results]
+        return _parse_results(data)
 
     async def lookup_by_journal(self, ref: RefFields) -> list[dict]:
         """Query Europe PMC by journal+author+year+volume (no title field).
@@ -111,10 +108,61 @@ class EuropePMCResolver:
             return []
 
         data = parse_json(resp, context=f"europepmc-journal {ref.ref_id}")
-        if data is None:
-            return []
-        results = data.get("resultList", {}).get("result", [])
-        return [_normalise(r) for r in results]
+        return _parse_results(data)
+
+    async def lookup_by_doi(self, doi: str) -> Optional[dict]:
+        """Fetch ePMC record by DOI.
+
+        Returns a normalised candidate dict, or None.
+        """
+        params = {
+            "query": f"DOI:{doi}",
+            "format": "json",
+            "pageSize": 1,
+            "resultType": "core",
+        }
+        logger.debug("EuropePMC verify doi=%s", doi)
+        try:
+            resp = await get_with_retry(
+                self._client,
+                _BASE,
+                params=params,
+                headers={"User-Agent": _USER_AGENT},
+            )
+        except httpx.HTTPError as exc:
+            logger.debug("EuropePMC lookup_by_doi failed: %r", exc)
+            return None
+
+        data = parse_json(resp, context=f"europepmc doi:{doi}")
+        results = _parse_results(data)
+        return results[0] if results else None
+
+    async def lookup_by_pmid(self, pmid: str) -> Optional[dict]:
+        """Fetch ePMC record by PMID.
+
+        Returns a normalised candidate dict, or None.
+        """
+        params = {
+            "query": f"EXT_ID:{pmid} SRC:MED",
+            "format": "json",
+            "pageSize": 1,
+            "resultType": "core",
+        }
+        logger.debug("EuropePMC verify pmid=%s", pmid)
+        try:
+            resp = await get_with_retry(
+                self._client,
+                _BASE,
+                params=params,
+                headers={"User-Agent": _USER_AGENT},
+            )
+        except httpx.HTTPError as exc:
+            logger.debug("EuropePMC lookup_by_pmid failed: %r", exc)
+            return None
+
+        data = parse_json(resp, context=f"europepmc pmid:{pmid}")
+        results = _parse_results(data)
+        return results[0] if results else None
 
     async def _lookup_by_nbk_id(
         self, nbk_id: str, ref_id: str
@@ -139,10 +187,18 @@ class EuropePMCResolver:
             return None
 
         data = parse_json(resp, context=f"europepmc nbk {nbk_id}")
-        if data is None:
-            return None
-        results = data.get("resultList", {}).get("result", [])
-        return _normalise(results[0]) if results else None
+        results = _parse_results(data)
+        return results[0] if results else None
+
+
+def _parse_results(data: Optional[dict]) -> list[dict]:
+    """Extract and normalise the result list from a Europe PMC response."""
+    if data is None:
+        return []
+    return [
+        _normalise(r)
+        for r in data.get("resultList", {}).get("result", [])
+    ]
 
 
 def _sanitise(s: str) -> str:

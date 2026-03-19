@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from app.resolvers.datacite import DataCiteResolver, _normalise
-from app.xml_handler import RefFields
+from app.types import RefFields
 
 _PATCH = "app.resolvers.datacite.get_with_retry"
 
@@ -164,3 +164,43 @@ async def test_lookup_multiple_candidates_returned():
     assert len(results) == 2
     assert results[0]["doi"] == "10.5281/zenodo.001"
     assert results[1]["doi"] == "10.5281/zenodo.002"
+
+
+# --- lookup_by_doi ---
+
+@pytest.mark.anyio
+async def test_lookup_by_doi_returns_candidate():
+    item = _datacite_item(
+        doi="10.5281/zenodo.999",
+        titles=[{"title": "A dataset"}],
+        creators=[{"familyName": "Jones"}],
+        publicationYear=2022,
+    )
+    mock_resp = httpx.Response(200, text=json.dumps({"data": item}))
+    with patch(_PATCH, new=AsyncMock(return_value=mock_resp)):
+        async with httpx.AsyncClient() as client:
+            resolver = DataCiteResolver(client)
+            result = await resolver.lookup_by_doi("10.5281/zenodo.999")
+
+    assert result is not None
+    assert result["doi"] == "10.5281/zenodo.999"
+    assert result["first_author"] == "Jones"
+
+
+@pytest.mark.anyio
+async def test_lookup_by_doi_returns_none_on_missing_data():
+    mock_resp = httpx.Response(200, text=json.dumps({}))
+    with patch(_PATCH, new=AsyncMock(return_value=mock_resp)):
+        async with httpx.AsyncClient() as client:
+            resolver = DataCiteResolver(client)
+            result = await resolver.lookup_by_doi("10.9999/notfound")
+    assert result is None
+
+
+@pytest.mark.anyio
+async def test_lookup_by_doi_returns_none_on_http_error():
+    with patch(_PATCH, side_effect=httpx.ConnectError("failed")):
+        async with httpx.AsyncClient() as client:
+            resolver = DataCiteResolver(client)
+            result = await resolver.lookup_by_doi("10.5281/zenodo.999")
+    assert result is None

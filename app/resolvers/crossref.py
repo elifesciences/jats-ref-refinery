@@ -7,10 +7,12 @@ If unset, requests are made without a mailto identifier (standard pool).
 import logging
 import os
 import re
+from typing import Optional
+
 import httpx
 
 from app.http_utils import get_with_retry, parse_json
-from app.xml_handler import RefFields
+from app.types import RefFields
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +69,33 @@ class CrossRefResolver:
         filtered = [c for c in candidates
                     if c["api_score"] >= _MIN_CANDIDATE_SCORE]
         return filtered if filtered else candidates
+
+    async def lookup_by_doi(self, doi: str) -> Optional[dict]:
+        """Fetch Crossref record by DOI.
+
+        Returns a normalised candidate dict, or None if not found.
+        """
+        url = f"{_BASE}/{doi}"
+        params = {}
+        if _MAILTO:
+            params["mailto"] = _MAILTO
+        logger.debug("CrossRef verify doi=%s", doi)
+        try:
+            resp = await get_with_retry(
+                self._client,
+                url,
+                params=params,
+                headers={"User-Agent": _USER_AGENT},
+            )
+        except httpx.HTTPError as exc:
+            logger.debug("CrossRef lookup_by_doi failed: %r", exc)
+            return None
+
+        data = parse_json(resp, context=f"crossref doi:{doi}")
+        if data is None:
+            return None
+        item = data.get("message")
+        return _normalise(item) if item else None
 
 
 def _sanitise_query(query: str) -> str:

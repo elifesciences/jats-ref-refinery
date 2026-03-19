@@ -2,36 +2,13 @@
 
 from __future__ import annotations
 
-import dataclasses
 import re
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any
 
 from lxml import etree
 
-
-@dataclasses.dataclass
-class RefFields:
-    """Structured fields extracted from a single <ref> element.
-
-    Parsed fields are used for candidate scoring.  title_from_source is set
-    when no <article-title> was present and title was derived from <source>;
-    this changes both lookup strategy and scoring behaviour.
-    """
-
-    element: Any  # lxml element — the <ref> node
-    ref_id: str
-    title: str
-    first_author: str
-    year: str
-    source: str
-    volume: str
-    pages: str
-    title_from_source: bool = False  # True if derived from <source>
-    existing_doi: str = ""   # DOI already present in the input XML, if any
-    existing_pmid: str = ""  # PMID already present in the input XML, if any
-    nbk_id: str = ""         # NCBI Bookshelf ID from ext-link, if present
-    enrichment: Optional[dict] = None  # populated by enricher after lookup
+from app.types import EnrichmentResult, RefFields
 
 
 def parse_refs(raw_xml: bytes) -> tuple[list[RefFields], Any]:
@@ -146,13 +123,11 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
         before the existing <source>
     """
     for ref in refs:
-        if not ref.enrichment:
+        e = ref.enrichment
+        if not e:
             continue
 
-        doi = ref.enrichment.get("doi")
-        pmid = ref.enrichment.get("pmid")
-
-        if not doi and not pmid:
+        if not any([e.doi, e.pmid, e.suspect_doi, e.suspect_pmid]):
             continue
 
         citation = ref.element.find(".//mixed-citation")
@@ -162,7 +137,8 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
             continue
 
         # Insert new DOI with comment for conflict
-        if doi and not (ref.existing_doi and ref.existing_doi == doi.lower()):
+        if e.doi and not (ref.existing_doi and
+                          ref.existing_doi == e.doi.lower()):
             prev = citation[-1] if len(citation) else None
             if prev is not None:
                 prev.tail = (prev.tail or "") + " "
@@ -175,16 +151,34 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
                 )
             pub_id = etree.SubElement(citation, "pub-id")
             pub_id.set("pub-id-type", "doi")
-            pub_id.text = doi
+            pub_id.text = e.doi
 
         # Insert PMID after DOI, if not in the input
-        if pmid and not ref.existing_pmid:
+        if e.pmid and not ref.existing_pmid:
             prev = citation[-1] if len(citation) else None
             if prev is not None:
                 prev.tail = (prev.tail or "") + " "
             pmid_el = etree.SubElement(citation, "pub-id")
             pmid_el.set("pub-id-type", "pmid")
-            pmid_el.text = pmid
+            pmid_el.text = e.pmid
+
+        # Suspect PIDs: add comments only
+        if e.suspect_doi:
+            prev = citation[-1] if len(citation) else None
+            if prev is not None:
+                prev.tail = (prev.tail or "") + " "
+            citation.append(etree.Comment(
+                f" refinery: existing DOI may be incorrect;"
+                f" suggested: {e.suspect_doi} "
+            ))
+        if e.suspect_pmid:
+            prev = citation[-1] if len(citation) else None
+            if prev is not None:
+                prev.tail = (prev.tail or "") + " "
+            citation.append(etree.Comment(
+                f" refinery: existing PMID may be incorrect;"
+                f" suggested: {e.suspect_pmid} "
+            ))
 
         # Fix tag structure when the original had no <article-title>.
         # journal_name_to_add: <source> was actually the article title
@@ -192,8 +186,8 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
         #                        journal name.
         # article_title_to_add: <source> is correct; article title was just
         #                         absent: insert it from the matched candidate.
-        journal_name = ref.enrichment.get("journal_name_to_add", "")
-        article_title = ref.enrichment.get("article_title_to_add", "")
+        journal_name = e.journal_name_to_add
+        article_title = e.article_title_to_add
         source_el = citation.find("source")
 
         if journal_name and source_el is not None:

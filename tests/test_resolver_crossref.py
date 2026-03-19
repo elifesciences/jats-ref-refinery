@@ -11,7 +11,7 @@ from app.resolvers.crossref import (
     _normalise,
     _sanitise_query,
 )
-from app.xml_handler import RefFields
+from app.types import RefFields
 
 _PATCH = "app.resolvers.crossref.get_with_retry"
 
@@ -212,3 +212,44 @@ async def test_lookup_returns_all_when_all_below_min_score():
 
     assert len(results) == 1
     assert results[0]["doi"] == "10.1234/only"
+
+
+# --- lookup_by_doi ---
+
+@pytest.mark.anyio
+async def test_lookup_by_doi_returns_candidate():
+    item = _crossref_item(**{
+        "DOI": "10.1234/foo",
+        "title": ["A great paper"],
+        "author": [{"family": "Smith", "given": "J"}],
+        "issued": {"date-parts": [[2021]]},
+        "score": 100.0,
+    })
+    mock_resp = httpx.Response(200, text=json.dumps({"message": item}))
+    with patch(_PATCH, new=AsyncMock(return_value=mock_resp)):
+        async with httpx.AsyncClient() as client:
+            resolver = CrossRefResolver(client)
+            result = await resolver.lookup_by_doi("10.1234/foo")
+
+    assert result is not None
+    assert result["doi"] == "10.1234/foo"
+    assert result["first_author"] == "Smith"
+
+
+@pytest.mark.anyio
+async def test_lookup_by_doi_returns_none_on_missing_message():
+    mock_resp = httpx.Response(200, text=json.dumps({}))
+    with patch(_PATCH, new=AsyncMock(return_value=mock_resp)):
+        async with httpx.AsyncClient() as client:
+            resolver = CrossRefResolver(client)
+            result = await resolver.lookup_by_doi("10.9999/notfound")
+    assert result is None
+
+
+@pytest.mark.anyio
+async def test_lookup_by_doi_returns_none_on_http_error():
+    with patch(_PATCH, side_effect=httpx.ConnectError("failed")):
+        async with httpx.AsyncClient() as client:
+            resolver = CrossRefResolver(client)
+            result = await resolver.lookup_by_doi("10.1234/foo")
+    assert result is None
