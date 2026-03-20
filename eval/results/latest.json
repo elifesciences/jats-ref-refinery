@@ -1,25 +1,25 @@
 {
-  "run_at": "2026-03-18 14:17 UTC",
+  "run_at": "2026-03-20 09:01 UTC",
   "overall": {
-    "tp": 6785,
-    "fp": 118,
-    "fn": 144,
-    "new": 2363,
-    "precision": 0.9829059829059829,
-    "recall": 0.979217780343484,
-    "f1": 0.9810584152689417
+    "tp": 6860,
+    "fp": 30,
+    "fn": 142,
+    "new": 2377,
+    "precision": 0.9956458635703919,
+    "recall": 0.9797200799771494,
+    "f1": 0.9876187733947596
   },
   "fixtures": [
     {
       "name": "elife-preprint-100737-v1",
       "skipped": false,
-      "tp": 84,
-      "fp": 1,
+      "tp": 85,
+      "fp": 0,
       "fn": 2,
       "new": 1,
-      "precision": 0.9882352941176471,
-      "recall": 0.9767441860465116,
-      "f1": 0.9824561403508771
+      "precision": 1.0,
+      "recall": 0.9770114942528736,
+      "f1": 0.9883720930232558
     },
     {
       "name": "elife-preprint-100739-v1",
@@ -68,24 +68,24 @@
     {
       "name": "elife-preprint-101035-v1",
       "skipped": false,
-      "tp": 198,
-      "fp": 1,
+      "tp": 199,
+      "fp": 0,
       "fn": 3,
       "new": 7,
-      "precision": 0.9949748743718593,
-      "recall": 0.9850746268656716,
-      "f1": 0.99
+      "precision": 1.0,
+      "recall": 0.9851485148514851,
+      "f1": 0.9925187032418953
     },
     {
       "name": "elife-preprint-101103-v1",
       "skipped": false,
-      "tp": 89,
-      "fp": 2,
+      "tp": 91,
+      "fp": 0,
       "fn": 0,
       "new": 0,
-      "precision": 0.978021978021978,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.9888888888888888
+      "f1": 1.0
     },
     {
       "name": "elife-preprint-101325-v1",
@@ -113,12 +113,12 @@
       "name": "elife-preprint-101604-v1",
       "skipped": false,
       "tp": 28,
-      "fp": 8,
+      "fp": 0,
       "fn": 0,
-      "new": 21,
-      "precision": 0.7777777777777778,
+      "new": 28,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.8750000000000001
+      "f1": 1.0
     },
     {
       "name": "elife-preprint-101924-v1",
@@ -157,12 +157,12 @@
       "name": "elife-preprint-102321-v1",
       "skipped": false,
       "tp": 114,
-      "fp": 9,
-      "fn": 9,
-      "new": 1,
-      "precision": 0.926829268292683,
-      "recall": 0.926829268292683,
-      "f1": 0.926829268292683
+      "fp": 2,
+      "fn": 7,
+      "new": 8,
+      "precision": 0.9827586206896551,
+      "recall": 0.9421487603305785,
+      "f1": 0.9620253164556961
     },
     {
       "name": "elife-preprint-102346-v1",
@@ -178,13 +178,13 @@
     {
       "name": "elife-preprint-102409-v1",
       "skipped": false,
-      "tp": 77,
-      "fp": 2,
+      "tp": 79,
+      "fp": 0,
       "fn": 0,
       "new": 76,
-      "precision": 0.9746835443037974,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.9871794871794872
+      "f1": 1.0
     },
     {
       "name": "elife-preprint-102410-v1",
@@ -200,13 +200,13 @@
     {
       "name": "elife-preprint-102417-v1",
       "skipped": false,
-      "tp": 71,
-      "fp": 3,
+      "tp": 73,
+      "fp": 1,
       "fn": 0,
       "new": 69,
-      "precision": 0.9594594594594594,
+      "precision": 0.9864864864864865,
       "recall": 1.0,
-      "f1": 0.9793103448275862
+      "f1": 0.9931972789115647
     },
     {
       "name": "elife-preprint-102591-v1",
@@ -222,13 +222,13 @@
     {
       "name": "elife-preprint-102634-v1",
       "skipped": false,
-      "tp": 61,
-      "fp": 3,
+      "tp": 64,
+      "fp": 0,
       "fn": 2,
       "new": 2,
-      "precision": 0.953125,
-      "recall": 0.9682539682539683,
-      "f1": 0.9606299212598425
+      "precision": 1.0,
+      "recall": 0.9696969696969697,
+      "f1": 0.9846153846153847
     },
     {
       "name": "elife-preprint-102858-v1",
@@ -299,13 +299,13 @@
     {
       "name": "elife-preprint-104057-v1",
       "skipped": false,
-      "tp": 101,
-      "fp": 1,
+      "tp": 102,
+      "fp": 0,
       "fn": 0,
       "new": 0,
-      "precision": 0.9901960784313726,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.9950738916256158
+      "f1": 1.0
     },
     {
       "name": "elife-preprint-104093-v1",
@@ -332,13 +332,13 @@
     {
       "name": "elife-preprint-104334-v1",
       "skipped": false,
-      "tp": 83,
-      "fp": 2,
+      "tp": 85,
+      "fp": 0,
       "fn": 2,
       "new": 38,
-      "precision": 0.9764705882352941,
-      "recall": 0.9764705882352941,
-      "f1": 0.9764705882352941
+      "precision": 1.0,
+      "recall": 0.9770114942528736,
+      "f1": 0.9883720930232558
     },
     {
       "name": "elife-preprint-104475-v1",
@@ -365,13 +365,13 @@
     {
       "name": "elife-preprint-104691-v1",
       "skipped": false,
-      "tp": 177,
-      "fp": 1,
+      "tp": 178,
+      "fp": 0,
       "fn": 5,
       "new": 1,
-      "precision": 0.9943820224719101,
-      "recall": 0.9725274725274725,
-      "f1": 0.9833333333333333
+      "precision": 1.0,
+      "recall": 0.9726775956284153,
+      "f1": 0.9861495844875346
     },
     {
       "name": "elife-preprint-104720-v1",
@@ -398,24 +398,24 @@
     {
       "name": "elife-preprint-104862-v1",
       "skipped": false,
-      "tp": 163,
-      "fp": 3,
+      "tp": 166,
+      "fp": 0,
       "fn": 2,
       "new": 4,
-      "precision": 0.9819277108433735,
-      "recall": 0.9878787878787879,
-      "f1": 0.9848942598187311
+      "precision": 1.0,
+      "recall": 0.9880952380952381,
+      "f1": 0.9940119760479043
     },
     {
       "name": "elife-preprint-105268-v1",
       "skipped": false,
-      "tp": 119,
-      "fp": 1,
+      "tp": 120,
+      "fp": 0,
       "fn": 2,
       "new": 0,
-      "precision": 0.9916666666666667,
-      "recall": 0.9834710743801653,
-      "f1": 0.9875518672199171
+      "precision": 1.0,
+      "recall": 0.9836065573770492,
+      "f1": 0.9917355371900827
     },
     {
       "name": "elife-preprint-105446-v1",
@@ -442,24 +442,24 @@
     {
       "name": "elife-preprint-105507-v1",
       "skipped": false,
-      "tp": 30,
-      "fp": 2,
+      "tp": 34,
+      "fp": 0,
       "fn": 3,
       "new": 10,
-      "precision": 0.9375,
-      "recall": 0.9090909090909091,
-      "f1": 0.923076923076923
+      "precision": 1.0,
+      "recall": 0.918918918918919,
+      "f1": 0.9577464788732395
     },
     {
       "name": "elife-preprint-105589-v1",
       "skipped": false,
-      "tp": 23,
-      "fp": 1,
+      "tp": 24,
+      "fp": 0,
       "fn": 1,
       "new": 22,
-      "precision": 0.9583333333333334,
-      "recall": 0.9583333333333334,
-      "f1": 0.9583333333333334
+      "precision": 1.0,
+      "recall": 0.96,
+      "f1": 0.9795918367346939
     },
     {
       "name": "elife-preprint-106134-v1",
@@ -475,13 +475,13 @@
     {
       "name": "elife-preprint-106174-v1",
       "skipped": false,
-      "tp": 35,
-      "fp": 3,
+      "tp": 38,
+      "fp": 0,
       "fn": 0,
       "new": 33,
-      "precision": 0.9210526315789473,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.958904109589041
+      "f1": 1.0
     },
     {
       "name": "elife-preprint-106231-v1",
@@ -519,24 +519,24 @@
     {
       "name": "elife-preprint-106446-v1",
       "skipped": false,
-      "tp": 104,
-      "fp": 2,
+      "tp": 105,
+      "fp": 1,
       "fn": 1,
       "new": 103,
-      "precision": 0.9811320754716981,
-      "recall": 0.9904761904761905,
-      "f1": 0.9857819905213271
+      "precision": 0.9905660377358491,
+      "recall": 0.9905660377358491,
+      "f1": 0.9905660377358491
     },
     {
       "name": "elife-preprint-106468-v1",
       "skipped": false,
-      "tp": 168,
-      "fp": 21,
+      "tp": 185,
+      "fp": 4,
       "fn": 3,
       "new": 2,
-      "precision": 0.8888888888888888,
-      "recall": 0.9824561403508771,
-      "f1": 0.9333333333333333
+      "precision": 0.9788359788359788,
+      "recall": 0.9840425531914894,
+      "f1": 0.9814323607427056
     },
     {
       "name": "elife-preprint-106513-v1",
@@ -640,24 +640,24 @@
     {
       "name": "elife-preprint-107596-v1",
       "skipped": false,
-      "tp": 88,
-      "fp": 1,
+      "tp": 89,
+      "fp": 0,
       "fn": 2,
       "new": 0,
-      "precision": 0.9887640449438202,
-      "recall": 0.9777777777777777,
-      "f1": 0.9832402234636872
+      "precision": 1.0,
+      "recall": 0.978021978021978,
+      "f1": 0.9888888888888888
     },
     {
       "name": "elife-preprint-107688-v1",
       "skipped": false,
-      "tp": 46,
-      "fp": 1,
+      "tp": 47,
+      "fp": 0,
       "fn": 4,
       "new": 44,
-      "precision": 0.9787234042553191,
-      "recall": 0.92,
-      "f1": 0.9484536082474226
+      "precision": 1.0,
+      "recall": 0.9215686274509803,
+      "f1": 0.9591836734693878
     },
     {
       "name": "elife-preprint-107742-v1",
@@ -706,13 +706,13 @@
     {
       "name": "elife-preprint-107825-v1",
       "skipped": false,
-      "tp": 65,
-      "fp": 1,
+      "tp": 66,
+      "fp": 0,
       "fn": 6,
       "new": 54,
-      "precision": 0.9848484848484849,
-      "recall": 0.9154929577464789,
-      "f1": 0.948905109489051
+      "precision": 1.0,
+      "recall": 0.9166666666666666,
+      "f1": 0.9565217391304348
     },
     {
       "name": "elife-preprint-108086-v1",
@@ -827,13 +827,13 @@
     {
       "name": "elife-preprint-108826-v1",
       "skipped": false,
-      "tp": 67,
-      "fp": 3,
+      "tp": 69,
+      "fp": 1,
       "fn": 1,
-      "new": 56,
-      "precision": 0.9571428571428572,
-      "recall": 0.9852941176470589,
-      "f1": 0.9710144927536232
+      "new": 55,
+      "precision": 0.9857142857142858,
+      "recall": 0.9857142857142858,
+      "f1": 0.9857142857142858
     },
     {
       "name": "elife-preprint-108878-v1",
@@ -871,35 +871,35 @@
     {
       "name": "elife-preprint-108953-v1",
       "skipped": false,
-      "tp": 61,
-      "fp": 1,
+      "tp": 62,
+      "fp": 0,
       "fn": 1,
       "new": 42,
-      "precision": 0.9838709677419355,
-      "recall": 0.9838709677419355,
-      "f1": 0.9838709677419355
+      "precision": 1.0,
+      "recall": 0.9841269841269841,
+      "f1": 0.9919999999999999
     },
     {
       "name": "elife-preprint-108976-v1",
       "skipped": false,
-      "tp": 105,
-      "fp": 13,
+      "tp": 116,
+      "fp": 2,
       "fn": 0,
       "new": 111,
-      "precision": 0.8898305084745762,
+      "precision": 0.9830508474576272,
       "recall": 1.0,
-      "f1": 0.9417040358744395
+      "f1": 0.9914529914529915
     },
     {
       "name": "elife-preprint-109112-v1",
       "skipped": false,
-      "tp": 60,
-      "fp": 2,
+      "tp": 62,
+      "fp": 0,
       "fn": 0,
       "new": 58,
-      "precision": 0.967741935483871,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.9836065573770492
+      "f1": 1.0
     },
     {
       "name": "elife-preprint-109159-v1",
@@ -937,24 +937,24 @@
     {
       "name": "elife-preprint-109315-v1",
       "skipped": false,
-      "tp": 40,
-      "fp": 2,
+      "tp": 42,
+      "fp": 0,
       "fn": 0,
       "new": 40,
-      "precision": 0.9523809523809523,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.975609756097561
+      "f1": 1.0
     },
     {
       "name": "elife-preprint-109358-v1",
       "skipped": false,
-      "tp": 79,
-      "fp": 7,
+      "tp": 84,
+      "fp": 2,
       "fn": 2,
       "new": 82,
-      "precision": 0.9186046511627907,
-      "recall": 0.9753086419753086,
-      "f1": 0.9461077844311376
+      "precision": 0.9767441860465116,
+      "recall": 0.9767441860465116,
+      "f1": 0.9767441860465116
     },
     {
       "name": "elife-preprint-109375-v1",
@@ -981,13 +981,13 @@
     {
       "name": "elife-preprint-109644-v1",
       "skipped": false,
-      "tp": 48,
-      "fp": 2,
+      "tp": 50,
+      "fp": 0,
       "fn": 7,
-      "new": 37,
-      "precision": 0.96,
-      "recall": 0.8727272727272727,
-      "f1": 0.9142857142857144
+      "new": 38,
+      "precision": 1.0,
+      "recall": 0.8771929824561403,
+      "f1": 0.9345794392523363
     },
     {
       "name": "elife-preprint-109708-v1",
@@ -1014,13 +1014,13 @@
     {
       "name": "elife-preprint-109872-v1",
       "skipped": false,
-      "tp": 84,
-      "fp": 1,
+      "tp": 85,
+      "fp": 0,
       "fn": 0,
       "new": 80,
-      "precision": 0.9882352941176471,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.9940828402366864
+      "f1": 1.0
     },
     {
       "name": "elife-preprint-109888-v1",
@@ -1080,13 +1080,13 @@
     {
       "name": "elife-preprint-110252-v1",
       "skipped": false,
-      "tp": 65,
-      "fp": 2,
+      "tp": 66,
+      "fp": 1,
       "fn": 4,
       "new": 61,
-      "precision": 0.9701492537313433,
-      "recall": 0.9420289855072463,
-      "f1": 0.9558823529411764
+      "precision": 0.9850746268656716,
+      "recall": 0.9428571428571428,
+      "f1": 0.9635036496350364
     },
     {
       "name": "elife-preprint-110468-v1",
