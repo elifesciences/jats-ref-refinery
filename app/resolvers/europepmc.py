@@ -228,7 +228,7 @@ def _normalise(result: dict) -> dict:
     doi = result.get("doi", "") or ""
     pmid = str(result.get("pmid", "")) if result.get("pmid") else ""
 
-    journal = result.get("journal") or {}
+    journal = (result.get("journalInfo") or {}).get("journal") or {}
     source = journal.get("title", "") or result.get("journalTitle", "")
     short_source = (
         journal.get("medlineAbbreviation", "")
@@ -245,4 +245,5 @@ def _normalise(result: dict) -> dict:
         "short_source": short_source,
         "pages": result.get("pageInfo", ""),
         "api_score": 0.0,  # Europe PMC does not expose a relevance score
+        "epmc_source": result.get("source", ""),  # e.g. "MED", "PPR"
     }
