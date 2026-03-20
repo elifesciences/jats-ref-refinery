@@ -300,32 +300,48 @@ def _write_chart(
     path: Path,
 ) -> None:
     rows = [r for r in fixture_results if not r.get("skipped")]
-    rows.append({**overall, "name": "OVERALL"})
+    f1_scores = [r["f1"] for r in rows]
 
-    labels = [r["name"] for r in rows]
-    precision = [r["precision"] for r in rows]
-    recall = [r["recall"] for r in rows]
-    f1 = [r["f1"] for r in rows]
+    fig, (ax_summary, ax_hist) = plt.subplots(
+        1, 2, figsize=(12, 5),
+        gridspec_kw={"width_ratios": [1, 2]},
+    )
 
-    x = range(len(labels))
-    width = 0.25
+    # Left panel: overall precision / recall / F1
+    metrics = ["Precision", "Recall", "F1"]
+    values = [overall["precision"], overall["recall"], overall["f1"]]
+    colors = ["#4c72b0", "#55a868", "#c44e52"]
+    bars = ax_summary.bar(metrics, values, color=colors, width=0.5)
+    for bar, val in zip(bars, values):
+        ax_summary.text(
+            bar.get_x() + bar.get_width() / 2,
+            val + 0.02,
+            f"{val:.3f}",
+            ha="center", va="bottom", fontsize=11, fontweight="bold",
+        )
+    ax_summary.set_ylim(0, 1.15)
+    ax_summary.set_ylabel("Score")
+    ax_summary.set_title(
+        f"Overall ({overall['tp']} TP / {overall['fp']} FP"
+        f" / {overall['fn']} FN / {overall['new']} NEW)"
+    )
 
-    fig, ax = plt.subplots(figsize=(max(6, len(labels) * 1.4), 5))
-    ax.bar([i - width for i in x], precision, width, label="Precision",
-           color="#4c72b0")
-    ax.bar(x, recall, width, label="Recall", color="#55a868")
-    ax.bar([i + width for i in x], f1, width, label="F1", color="#c44e52")
+    # Right panel: histogram of per-fixture F1 scores
+    bins = [i / 10 for i in range(11)]
+    ax_hist.hist(f1_scores, bins=bins, color="#c44e52", edgecolor="white",
+                 linewidth=0.6)
+    ax_hist.set_xlabel("F1 score")
+    ax_hist.set_ylabel("Number of fixtures")
+    ax_hist.set_title(
+        f"Per-fixture F1 distribution ({len(rows)} fixtures)"
+    )
+    ax_hist.set_xticks(bins)
+    ax_hist.set_xlim(0, 1)
 
-    ax.set_ylim(0, 1.05)
-    ax.set_xticks(list(x))
-    ax.set_xticklabels(labels, rotation=20, ha="right", fontsize=9)
-    ax.set_ylabel("Score")
-    ax.set_title("jats-ref-refinery — eval scores")
-    ax.legend()
-    ax.axvline(len(rows) - 1.5, color="grey", linewidth=0.8, linestyle="--")
-
+    fig.suptitle("jats-ref-refinery — eval scores", fontsize=13,
+                 fontweight="bold", y=1.01)
     fig.tight_layout()
-    fig.savefig(path, dpi=150)
+    fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -380,11 +396,6 @@ jq '[.[] | select(.outcome == "FP")]' eval/results/latest_detail.json
 **Find all false negatives (missed PIDs):**
 ```bash
 jq '[.[] | select(.outcome == "FN")]' eval/results/latest_detail.json
-```
-
-**Find all outcomes for a specific ref:**
-```bash
-jq '[.[] | select(.ref_id == "c6")]' eval/results/latest_detail.json
 ```
 
 **Find all outcomes for a specific fixture:**
