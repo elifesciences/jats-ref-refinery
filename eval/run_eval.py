@@ -326,17 +326,35 @@ def _write_chart(
         f" / {overall['fn']} FN / {overall['new']} NEW)"
     )
 
-    # Right panel: histogram of per-fixture F1 scores
-    bins = [i / 10 for i in range(11)]
-    ax_hist.hist(f1_scores, bins=bins, color="#c44e52", edgecolor="white",
-                 linewidth=0.6)
-    ax_hist.set_xlabel("F1 score")
+    # Right panel: histogram of per-fixture F1 scores.
+    # Use fine bins (0.02-wide)
+    lo = max(0.0, min(f1_scores) - 0.02) if f1_scores else 0.0
+    bins = [lo + i * 0.02 for i in range(int((1.0 - lo) / 0.02) + 2)]
+    counts, edges, patches = ax_hist.hist(
+        f1_scores, bins=bins, color="#c44e52", edgecolor="white",
+        linewidth=0.6,
+    )
+    for count, patch, left, right in zip(
+        counts, patches, edges[:-1], edges[1:]
+    ):
+        if count > 0:
+            cx = patch.get_x() + patch.get_width() / 2
+            ax_hist.text(
+                cx, count + 0.3, str(int(count)),
+                ha="center", va="bottom", fontsize=8,
+            )
+            ax_hist.text(
+                cx, -max(counts) * 0.07,
+                f"{left:.2f}–{right:.2f}",
+                ha="center", va="top", fontsize=7, rotation=45,
+            )
+    ax_hist.set_xlabel("F1 score", labelpad=30)
     ax_hist.set_ylabel("Number of fixtures")
     ax_hist.set_title(
         f"Per-fixture F1 distribution ({len(rows)} fixtures)"
     )
-    ax_hist.set_xticks(bins)
-    ax_hist.set_xlim(0, 1)
+    ax_hist.set_xticks([])
+    ax_hist.set_xlim(lo, 1.0 + 0.02)
 
     fig.suptitle("jats-ref-refinery — eval scores", fontsize=13,
                  fontweight="bold", y=1.01)
