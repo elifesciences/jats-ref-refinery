@@ -5,6 +5,7 @@ Covers datasets, software, Zenodo preprints, and other non-journal content.
 """
 
 import logging
+import os
 from typing import Optional
 
 import httpx
@@ -16,6 +17,11 @@ logger = logging.getLogger(__name__)
 
 _BASE = "https://api.datacite.org/dois"
 _ROWS = 5
+_MAILTO = os.getenv("CROSSREF_MAILTO")
+_USER_AGENT = (
+    f"jats-ref-refinery/0.1 (mailto:{_MAILTO})" if _MAILTO
+    else "jats-ref-refinery/0.1"
+)
 
 
 class DataCiteResolver:
@@ -40,7 +46,10 @@ class DataCiteResolver:
         }
 
         try:
-            resp = await get_with_retry(self._client, _BASE, params=params)
+            resp = await get_with_retry(
+                self._client, _BASE, params=params,
+                headers={"User-Agent": _USER_AGENT},
+            )
         except httpx.HTTPError as exc:
             logger.debug("DataCite request failed: %r", exc)
             return []
@@ -59,7 +68,10 @@ class DataCiteResolver:
         url = f"{_BASE}/{doi}"
         logger.debug("DataCite verify doi=%s", doi)
         try:
-            resp = await get_with_retry(self._client, url)
+            resp = await get_with_retry(
+                self._client, url,
+                headers={"User-Agent": _USER_AGENT},
+            )
         except httpx.HTTPError as exc:
             logger.debug("DataCite lookup_by_doi failed: %r", exc)
             return None

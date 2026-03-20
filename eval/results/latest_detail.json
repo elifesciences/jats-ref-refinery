@@ -6555,17 +6555,17 @@
     "fixture": "elife-preprint-102321-v1.xml",
     "ref_id": "c54",
     "pid": "doi",
-    "outcome": "FN",
+    "outcome": "TP",
     "truth": "10.1093/molbev/msaa116",
-    "recovered": ""
+    "recovered": "10.1093/molbev/msaa116"
   },
   {
     "fixture": "elife-preprint-102321-v1.xml",
     "ref_id": "c54",
     "pid": "pmid",
-    "outcome": "FN",
+    "outcome": "TP",
     "truth": "32402077",
-    "recovered": ""
+    "recovered": "32402077"
   },
   {
     "fixture": "elife-preprint-102321-v1.xml",
@@ -8971,9 +8971,9 @@
     "fixture": "elife-preprint-102410-v1.xml",
     "ref_id": "c35",
     "pid": "doi",
-    "outcome": "FP",
+    "outcome": "TP",
     "truth": "10.1101/2023.06.14.543914",
-    "recovered": "10.21203/rs.3.rs-3068886/v1"
+    "recovered": "10.1101/2023.06.14.543914"
   },
   {
     "fixture": "elife-preprint-102410-v1.xml",
@@ -11923,9 +11923,9 @@
     "fixture": "elife-preprint-102858-v1.xml",
     "ref_id": "c35",
     "pid": "doi",
-    "outcome": "FP",
+    "outcome": "TP",
     "truth": "10.1101/2023.06.07.544129",
-    "recovered": "10.1091/mbc.e23-06-0215"
+    "recovered": "10.1101/2023.06.07.544129"
   },
   {
     "fixture": "elife-preprint-102858-v1.xml",
@@ -11933,7 +11933,7 @@
     "pid": "pmid",
     "outcome": "NEW",
     "truth": "",
-    "recovered": "37903220"
+    "recovered": "37333400"
   },
   {
     "fixture": "elife-preprint-102858-v1.xml",
@@ -19747,17 +19747,17 @@
     "fixture": "elife-preprint-104691-v1.xml",
     "ref_id": "c84",
     "pid": "doi",
-    "outcome": "FN",
+    "outcome": "TP",
     "truth": "10.1007/s00401-024-02683-4",
-    "recovered": ""
+    "recovered": "10.1007/s00401-024-02683-4"
   },
   {
     "fixture": "elife-preprint-104691-v1.xml",
     "ref_id": "c84",
     "pid": "pmid",
-    "outcome": "FN",
+    "outcome": "TP",
     "truth": "38289539",
-    "recovered": ""
+    "recovered": "38289539"
   },
   {
     "fixture": "elife-preprint-104691-v1.xml",
@@ -21123,9 +21123,17 @@
     "fixture": "elife-preprint-104720-v1.xml",
     "ref_id": "c80",
     "pid": "doi",
-    "outcome": "FN",
+    "outcome": "TP",
     "truth": "10.3390/ijms25126679",
-    "recovered": ""
+    "recovered": "10.3390/ijms25126679"
+  },
+  {
+    "fixture": "elife-preprint-104720-v1.xml",
+    "ref_id": "c80",
+    "pid": "pmid",
+    "outcome": "NEW",
+    "truth": "",
+    "recovered": "38928388"
   },
   {
     "fixture": "elife-preprint-104720-v1.xml",
@@ -33011,17 +33019,17 @@
     "fixture": "elife-preprint-106468-v1.xml",
     "ref_id": "c20",
     "pid": "doi",
-    "outcome": "FP",
+    "outcome": "TP",
     "truth": "10.1523/jneurosci.2728-16.2017",
-    "recovered": "10.1101/102673"
+    "recovered": "10.1523/jneurosci.2728-16.2017"
   },
   {
     "fixture": "elife-preprint-106468-v1.xml",
     "ref_id": "c20",
     "pid": "pmid",
-    "outcome": "FN",
+    "outcome": "TP",
     "truth": "28264980",
-    "recovered": ""
+    "recovered": "28264980"
   },
   {
     "fixture": "elife-preprint-106468-v1.xml",
@@ -33283,17 +33291,17 @@
     "fixture": "elife-preprint-106468-v1.xml",
     "ref_id": "c36",
     "pid": "doi",
-    "outcome": "TP",
+    "outcome": "FP",
     "truth": "10.1101/2020.01.16.909473",
-    "recovered": "10.1101/2020.01.16.909473"
+    "recovered": "10.1016/j.neuron.2020.07.014"
   },
   {
     "fixture": "elife-preprint-106468-v1.xml",
     "ref_id": "c36",
     "pid": "pmid",
-    "outcome": "FN",
+    "outcome": "TP",
     "truth": "32783881",
-    "recovered": ""
+    "recovered": "32783881"
   },
   {
     "fixture": "elife-preprint-106468-v1.xml",
@@ -34389,7 +34397,7 @@
     "pid": "doi",
     "outcome": "FP",
     "truth": "10.48617/etd.1185",
-    "recovered": "10.7554/elife.106513.2"
+    "recovered": "10.7554/elife.106513.1"
   },
   {
     "fixture": "elife-preprint-106513-v1.xml",
@@ -37659,17 +37667,9 @@
     "fixture": "elife-preprint-107467-v1.xml",
     "ref_id": "c41",
     "pid": "doi",
-    "outcome": "TP",
+    "outcome": "FN",
     "truth": "10.1016/bs.pmbts.2022.06.008",
-    "recovered": "10.1016/bs.pmbts.2022.06.008"
-  },
-  {
-    "fixture": "elife-preprint-107467-v1.xml",
-    "ref_id": "c41",
-    "pid": "pmid",
-    "outcome": "NEW",
-    "truth": "",
-    "recovered": "36357077"
+    "recovered": ""
   },
   {
     "fixture": "elife-preprint-107467-v1.xml",
@@ -52547,9 +52547,17 @@
     "fixture": "elife-preprint-108826-v1.xml",
     "ref_id": "c14",
     "pid": "doi",
-    "outcome": "FP",
+    "outcome": "TP",
     "truth": "10.3109/00016487809107513",
-    "recovered": "10.3109/00016487809124756"
+    "recovered": "10.3109/00016487809107513"
+  },
+  {
+    "fixture": "elife-preprint-108826-v1.xml",
+    "ref_id": "c14",
+    "pid": "pmid",
+    "outcome": "NEW",
+    "truth": "",
+    "recovered": "716857"
   },
   {
     "fixture": "elife-preprint-108826-v1.xml",
@@ -55963,9 +55971,17 @@
     "fixture": "elife-preprint-108953-v1.xml",
     "ref_id": "c8",
     "pid": "doi",
-    "outcome": "FN",
+    "outcome": "TP",
     "truth": "10.1016/j.femsre.2004.07.002",
-    "recovered": ""
+    "recovered": "10.1016/j.femsre.2004.07.002"
+  },
+  {
+    "fixture": "elife-preprint-108953-v1.xml",
+    "ref_id": "c8",
+    "pid": "pmid",
+    "outcome": "NEW",
+    "truth": "",
+    "recovered": "15652977"
   },
   {
     "fixture": "elife-preprint-108953-v1.xml",
@@ -57411,9 +57427,17 @@
     "fixture": "elife-preprint-108976-v1.xml",
     "ref_id": "c76",
     "pid": "doi",
-    "outcome": "FP",
+    "outcome": "TP",
     "truth": "10.3390/pathogens13030182",
-    "recovered": "10.20944/preprints202402.0297.v1"
+    "recovered": "10.3390/pathogens13030182"
+  },
+  {
+    "fixture": "elife-preprint-108976-v1.xml",
+    "ref_id": "c76",
+    "pid": "pmid",
+    "outcome": "NEW",
+    "truth": "",
+    "recovered": "38535526"
   },
   {
     "fixture": "elife-preprint-108976-v1.xml",
@@ -62523,9 +62547,17 @@
     "fixture": "elife-preprint-109358-v1.xml",
     "ref_id": "c65",
     "pid": "doi",
-    "outcome": "FP",
+    "outcome": "TP",
     "truth": "10.7554/elife.90509",
-    "recovered": "10.1101/2023.05.31.543160"
+    "recovered": "10.7554/elife.90509"
+  },
+  {
+    "fixture": "elife-preprint-109358-v1.xml",
+    "ref_id": "c65",
+    "pid": "pmid",
+    "outcome": "NEW",
+    "truth": "",
+    "recovered": "37831064"
   },
   {
     "fixture": "elife-preprint-109358-v1.xml",
@@ -74379,17 +74411,17 @@
     "fixture": "elife-preprint-110468-v1.xml",
     "ref_id": "c4",
     "pid": "doi",
-    "outcome": "FP",
+    "outcome": "TP",
     "truth": "10.1016/j.ccell.2022.06.001",
-    "recovered": "10.1101/2022.04.20.488974"
+    "recovered": "10.1016/j.ccell.2022.06.001"
   },
   {
     "fixture": "elife-preprint-110468-v1.xml",
     "ref_id": "c4",
     "pid": "pmid",
-    "outcome": "FN",
+    "outcome": "TP",
     "truth": "35750052",
-    "recovered": ""
+    "recovered": "35750052"
   },
   {
     "fixture": "elife-preprint-110468-v1.xml",
