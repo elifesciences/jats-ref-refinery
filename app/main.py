@@ -1,11 +1,24 @@
 """FastAPI application entry point."""
 
+from pathlib import Path
+
 from fastapi import FastAPI, Request, Response, status
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.enricher import enrich_jats
 
+_STATIC = Path(__file__).parent / "static"
+_UI_PAGE = (_STATIC / "index.html").read_text()
+
 app = FastAPI(title="jats-ref-refinery", version="0.1.0")
+app.mount("/static", StaticFiles(directory=_STATIC, html=False), name="static")
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def ui():
+    """Browser upload UI."""
+    return _UI_PAGE
 
 
 @app.get("/health")
