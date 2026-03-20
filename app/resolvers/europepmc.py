@@ -4,6 +4,7 @@ Returns both DOI and PMID in a single query.
 """
 
 import logging
+import os
 import re
 from typing import Optional
 
@@ -15,7 +16,11 @@ from app.types import RefFields
 logger = logging.getLogger(__name__)
 
 _BASE = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
-_USER_AGENT = "jats-ref-refinery/0.1"
+_MAILTO = os.getenv("CROSSREF_MAILTO")
+_USER_AGENT = (
+    f"jats-ref-refinery/0.1 (mailto:{_MAILTO})" if _MAILTO
+    else "jats-ref-refinery/0.1"
+)
 _ROWS = 5
 
 
