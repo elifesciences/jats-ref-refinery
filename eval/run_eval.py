@@ -5,13 +5,13 @@ pipeline, and compares found PIDs to report precision, recall, and F1 score.
 
 After each run, writes:
   eval/results/latest.json         — machine-readable scores
-  eval/results/latest_detail.json  — per-ref outcomes (with --save-detail)
+  eval/results/latest_detail.json  — per-ref outcomes (skip with --no-detail)
   eval/results/latest.png          — bar chart (precision / recall / F1)
   eval/README.md                   — human-readable summary with embedded chart
 
 Usage:
     uv run python eval/run_eval.py [--verbose] [--delay SECS]
-                                   [--save-detail] [fixture ...]
+                                   [--no-detail] [fixture ...]
 
     --verbose    Print per-ref breakdown (TP / FP / FN)
     --delay      Seconds to wait between fixtures (default: 0.5)
