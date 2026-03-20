@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from app.resolvers.europepmc import EuropePMCResolver, _normalise, _clean_title
+from app.resolvers.europepmc import EuropePMCResolver, _clean_title, _normalise
 from app.types import RefFields
 
 _PATCH = "app.resolvers.europepmc.get_with_retry"
@@ -170,7 +170,8 @@ async def test_nbk_lookup_sets_exact_match_flag():
 
 
 def test_clean_title_strips_html_tags():
-    assert _clean_title("The <i>Drosophila</i> clock") == "The Drosophila clock"
+    result = _clean_title("The <i>Drosophila</i> clock")
+    assert result == "The Drosophila clock"
 
 
 def test_clean_title_normalises_whitespace():

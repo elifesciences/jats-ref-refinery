@@ -1,6 +1,6 @@
 """Tests for enricher helpers."""
 
-from app.enricher import _doi_version_match, _build_suspect_enrichment
+from app.enricher import _build_suspect_enrichment, _doi_version_match
 from app.types import RefFields
 
 

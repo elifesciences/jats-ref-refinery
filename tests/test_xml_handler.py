@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from app.types import EnrichmentResult
-from app.xml_handler import parse_refs, build_enriched_xml
+from app.xml_handler import build_enriched_xml, parse_refs
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample.xml"
 
