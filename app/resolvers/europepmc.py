@@ -229,7 +229,11 @@ def _normalise(result: dict) -> dict:
     pmid = str(result.get("pmid", "")) if result.get("pmid") else ""
 
     journal = (result.get("journalInfo") or {}).get("journal") or {}
-    source = journal.get("title", "") or result.get("journalTitle", "")
+    source = (
+        journal.get("title", "")
+        or result.get("journalTitle", "")
+        or (result.get("bookOrReportDetails") or {}).get("publisher", "")
+    )
     short_source = (
         journal.get("medlineAbbreviation", "")
         or journal.get("isoabbreviation", "")
