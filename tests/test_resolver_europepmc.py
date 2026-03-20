@@ -36,7 +36,8 @@ def _epmc_result(**kwargs) -> dict:
         "pmid": None,
         "pageInfo": "",
         "journalTitle": "",
-        "journal": {},
+        "journalInfo": {"journal": {}},
+        "source": "MED",
     }
     defaults.update(kwargs)
     return defaults
@@ -58,26 +59,28 @@ def test_normalise_extracts_surname_from_author_string():
 def test_normalise_uses_journal_object_over_journalTitle():
     result = _normalise(_epmc_result(
         journalTitle="Dev cell",
-        journal={
+        journalInfo={"journal": {
             "title": "Developmental Cell",
             "medlineAbbreviation": "Dev Cell",
-        },
+        }},
     ))
     assert result["source"] == "Developmental Cell"
     assert result["short_source"] == "Dev Cell"
 
 
 def test_normalise_falls_back_to_journalTitle():
-    result = _normalise(_epmc_result(journalTitle="eLife", journal={}))
+    result = _normalise(_epmc_result(
+        journalTitle="eLife", journalInfo={"journal": {}},
+    ))
     assert result["source"] == "eLife"
 
 
 def test_normalise_uses_isoabbreviation_fallback():
     result = _normalise(_epmc_result(
-        journal={
+        journalInfo={"journal": {
             "title": "Developmental Cell",
             "isoabbreviation": "Dev Cell",
-        },
+        }},
     ))
     assert result["short_source"] == "Dev Cell"
 
@@ -97,10 +100,10 @@ async def test_lookup_returns_candidates():
         pubYear="2017",
         doi="10.1016/j.devcel.2017.03.022",
         pmid=28399394,
-        journal={
+        journalInfo={"journal": {
             "title": "Developmental Cell",
             "medlineAbbreviation": "Dev Cell",
-        },
+        }},
     ))
     with patch(_PATCH, new=AsyncMock(return_value=mock_resp)):
         async with httpx.AsyncClient() as client:
@@ -195,8 +198,10 @@ async def test_lookup_by_journal_returns_candidates():
         pubYear="2004",
         doi="10.1158/1078-0432.ccr-03-0488",
         pmid=15073106,
-        journal={"title": "Clinical Cancer Research",
-                 "medlineAbbreviation": "Clin Cancer Res"},
+        journalInfo={"journal": {
+            "title": "Clinical Cancer Research",
+            "medlineAbbreviation": "Clin Cancer Res",
+        }},
     ))
     with patch(_PATCH, new=AsyncMock(return_value=mock_resp)):
         async with httpx.AsyncClient() as client:

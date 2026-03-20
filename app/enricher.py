@@ -252,6 +252,20 @@ async def _fetch_by_pid(
     return candidate
 
 
+_EPMC_SOURCE_RANK = {"MED": 0, "PMC": 1, "PPR": 2}
+_EPMC_SOURCE_RANK_DEFAULT = 1
+
+
+def _epmc_sort_key(ref: RefFields, candidate: dict) -> tuple:
+    """Sort key for ranking EPMC candidates: score desc, source rank asc."""
+    return (
+        score_match(ref, candidate),
+        -_EPMC_SOURCE_RANK.get(
+            candidate.get("epmc_source", ""), _EPMC_SOURCE_RANK_DEFAULT
+        ),
+    )
+
+
 def _best_epmc_candidate(
     ref: RefFields,
     title_candidates: list[dict],
@@ -260,15 +274,16 @@ def _best_epmc_candidate(
     """Return (best_candidate, source_was_title).
 
     Runs both candidate lists through scoring and picks the higher scorer.
+    Peer-reviewed records (MED) are preferred over preprints (PPR) on a tie.
     source_was_title=True means the TITLE: query won — the <source> value in
     the original XML is the article title, not the journal name.
     """
     title_best = (
-        max(title_candidates, key=lambda c: score_match(ref, c))
+        max(title_candidates, key=lambda c: _epmc_sort_key(ref, c))
         if title_candidates else None
     )
     journal_best = (
-        max(journal_candidates, key=lambda c: score_match(ref, c))
+        max(journal_candidates, key=lambda c: _epmc_sort_key(ref, c))
         if journal_candidates else None
     )
     if title_best is None and journal_best is None:
