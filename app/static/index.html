@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JATS Ref Refinery</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: arial, helvetica, sans-serif;
+      background: linear-gradient(to bottom, #ffffff 0%, #1a7f4b 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+    }
+
+    .logo {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      max-width: 120px;
+      max-height: 60px;
+      object-fit: contain;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+      padding: 48px;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    h1 { color: #1a1a1a; margin-bottom: 8px; font-size: 24px; }
+
+    .subtitle { color: #666; margin-bottom: 28px; font-size: 14px; }
+
+    .drop-zone {
+      border: 2px dashed #1a7f4b;
+      border-radius: 10px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      background: #f4faf7;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    }
+    .drop-zone:hover { border-color: #115c35; background: #e4f5ec; }
+    .drop-zone.drag-over {
+      border-color: #115c35;
+      background: #d0eddf;
+      transform: scale(1.01);
+    }
+
+    .drop-zone-icon { font-size: 40px; margin-bottom: 10px; }
+
+    .drop-zone-text {
+      color: #1a7f4b;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .drop-zone-hint { color: #999; font-size: 13px; }
+
+    input[type="file"] { display: none; }
+
+    .file-info {
+      display: none;
+      margin-top: 16px;
+      padding: 12px;
+      background: #f4faf7;
+      border-radius: 8px;
+    }
+    .file-info.show { display: block; }
+    .file-name { color: #1a1a1a; font-weight: 600; word-break: break-all; }
+    .file-size { color: #666; font-size: 13px; margin-top: 2px; }
+
+    .status {
+      display: none;
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    .status.show { display: block; }
+    .status.processing { background: #fff8e1; color: #7a5800; }
+    .status.success { background: #e6f4ea; color: #1e6b3a; }
+    .status.error { background: #fdecea; color: #8b1a14; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #e0c060;
+      border-top-color: #7a5800;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+  </style>
+</head>
+<body>
+  <img src="/static/elife-logo-transparent.svg" alt="eLife logo" class="logo">
+  <div class="container">
+    <h1>JATS Ref Refinery</h1>
+    <p class="subtitle">
+      Gather and validate DOIs and PMIDs for references in a JATS XML file.
+    </p>
+
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-zone-icon">📂</div>
+      <div class="drop-zone-text">Click to upload or drag and drop</div>
+      <div class="drop-zone-hint">XML files only</div>
+    </div>
+
+    <input type="file" id="fileInput" accept=".xml,text/xml,application/xml">
+
+    <div class="file-info" id="fileInfo">
+      <div class="file-name" id="fileName"></div>
+      <div class="file-size" id="fileSize"></div>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileNameEl = document.getElementById('fileName');
+    const fileSizeEl = document.getElementById('fileSize');
+    const statusEl = document.getElementById('status');
+    let outputFilename = 'enriched.xml';
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('drag-over');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+
+    function handleFile(file) {
+      if (
+        !file.name.endsWith('.xml') &&
+        file.type !== 'text/xml' &&
+        file.type !== 'application/xml'
+      ) {
+        showStatus('Please select a valid XML file.', 'error');
+        return;
+      }
+      outputFilename = file.name.replace(/(\.xml)?$/i, '_enriched.xml');
+      fileNameEl.textContent = file.name;
+      fileSizeEl.textContent = formatSize(file.size);
+      fileInfo.classList.add('show');
+      enrich(file);
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    async function enrich(file) {
+      showStatus(
+        '<span class="spinner"></span>Enriching references…',
+        'processing'
+      );
+      try {
+        const body = await file.arrayBuffer();
+        const res = await fetch('/enrich', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/xml' },
+          body,
+        });
+        const text = await res.text();
+        if (!res.ok) {
+          showStatus('Error ' + res.status + ': ' + text, 'error');
+          return;
+        }
+        const url = URL.createObjectURL(
+          new Blob([text], { type: 'application/xml' })
+        );
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = outputFilename;
+        a.click();
+        URL.revokeObjectURL(url);
+        showStatus('✓ Enrichment complete - download: ' + outputFilename + '.', 'success');
+      } catch (err) {
+        showStatus('Request failed: ' + err.message, 'error');
+      }
+    }
+
+    function showStatus(html, type) {
+      statusEl.innerHTML = html;
+      statusEl.className = 'status show ' + type;
+    }
+  </script>
+</body>
+</html>
