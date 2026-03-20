@@ -1,6 +1,6 @@
 """Tests for confidence scoring."""
 
-from app.scoring import score_match, HIGH_CONFIDENCE_THRESHOLD
+from app.scoring import HIGH_CONFIDENCE_THRESHOLD, score_match
 from app.types import RefFields
 
 

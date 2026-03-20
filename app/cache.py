@@ -1,7 +1,7 @@
 """Abstract cache interface with an in-process dict implementation.
 
 The interface is intentionally thin so that another solution (e.g. Redis)
-can be swapped in for multi-pod Kubernetes deployments while keeping 
+can be swapped in for multi-pod Kubernetes deployments while keeping
 enricher.py unaffected.
 """
 

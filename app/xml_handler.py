@@ -8,7 +8,7 @@ from typing import Any
 
 from lxml import etree
 
-from app.types import EnrichmentResult, RefFields
+from app.types import RefFields
 
 
 def parse_refs(raw_xml: bytes) -> tuple[list[RefFields], Any]:

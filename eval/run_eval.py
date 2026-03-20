@@ -23,18 +23,17 @@ Usage:
 import argparse
 import asyncio
 import json
+import logging
 import re
 import sys
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 
-import logging
-
-import matplotlib.pyplot as plt
-
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
-from lxml import etree
+
+import matplotlib.pyplot as plt  # noqa: E402
+from lxml import etree  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -395,7 +394,9 @@ jq '[.[] | select(.fixture == "my-fixture")]' eval/results/latest_detail.json
 
 **Count FPs by fixture:**
 ```bash
-jq 'group_by(.fixture) | map({{fixture: .[0].fixture, fp: (map(select(.outcome == "FP")) | length)}})' eval/results/latest_detail.json
+jq 'group_by(.fixture) | map({{fixture: .[0].fixture, \
+fp: (map(select(.outcome == "FP")) | length)}})' \
+eval/results/latest_detail.json
 ```
 
 Pass `--no-detail` to skip writing this file.
