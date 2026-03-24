@@ -86,6 +86,11 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
             nbk_id = match.group(1)
             break
 
+    # publication-type attribute from the citation element (untrusted hint)
+    publication_type = ""
+    if citation is not None:
+        publication_type = citation.get("publication-type", "").strip().lower()
+
     # Existing pub-ids in the input, if any
     existing_doi = ""
     existing_pmid = ""
@@ -109,6 +114,7 @@ def _extract_ref_fields(ref_el: Any) -> RefFields:
         existing_doi=existing_doi,
         existing_pmid=existing_pmid,
         nbk_id=nbk_id,
+        publication_type=publication_type,
     )
 
 

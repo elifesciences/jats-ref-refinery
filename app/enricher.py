@@ -373,75 +373,95 @@ async def _lookup_doi(
         if cached is not None:
             return cached
 
-        # Europe PMC — returns DOI and PMID together.
-        # When title_from_source is set, also run a journal-based query and
-        # pick whichever produces the higher-scoring candidate.
-        epmc_title_candidates = await europepmc.lookup(ref)
-        epmc_journal_candidates: list[dict] = []
-        if ref.title_from_source:
-            epmc_journal_candidates = await europepmc.lookup_by_journal(ref)
+        # When publication-type is 'software' or 'data', only query DataCite
+        datacite_only = ref.publication_type in ("software", "data")
 
-        epmc_best, source_was_title = _best_epmc_candidate(
-            ref, epmc_title_candidates, epmc_journal_candidates
-        )
-        if epmc_best:
-            if epmc_best.get("exact_match"):
+        if datacite_only:
+            logger.debug(
+                "DataCite-only [%s]: publication-type=%r",
+                ref.ref_id, ref.publication_type,
+            )
+        else:
+            # Europe PMC — returns DOI and PMID together.
+            # When title_from_source is set, also run a journal-based query and
+            # pick whichever produces the higher-scoring candidate.
+            epmc_title_candidates = await europepmc.lookup(ref)
+            epmc_journal_candidates: list[dict] = []
+            if ref.title_from_source:
+                epmc_journal_candidates = await europepmc.lookup_by_journal(
+                    ref
+                )
+
+            epmc_best, source_was_title = _best_epmc_candidate(
+                ref, epmc_title_candidates, epmc_journal_candidates
+            )
+            if epmc_best:
+                if epmc_best.get("exact_match"):
+                    logger.debug(
+                        "EuropePMC [%s]: exact NBK match doi=%s pmid=%s",
+                        ref.ref_id,
+                        epmc_best.get("doi"),
+                        epmc_best.get("pmid"),
+                    )
+                    enrichment = _build_epmc_enrichment(
+                        epmc_best, ref, source_was_title
+                    )
+                    cache.set(cache_key, enrichment)
+                    return enrichment
+                score = score_match(ref, epmc_best)
                 logger.debug(
-                    "EuropePMC [%s]: exact NBK match doi=%s pmid=%s",
-                    ref.ref_id, epmc_best.get("doi"), epmc_best.get("pmid"),
+                    "EuropePMC [%s]: best score=%.3f doi=%s title=%r"
+                    " (%d title-candidates, %d journal-candidates)",
+                    ref.ref_id, score,
+                    epmc_best.get("doi"), epmc_best.get("title"),
+                    len(epmc_title_candidates),
+                    len(epmc_journal_candidates),
                 )
-                enrichment = _build_epmc_enrichment(
-                    epmc_best, ref, source_was_title
+                if score >= HIGH_CONFIDENCE_THRESHOLD:
+                    enrichment = _build_epmc_enrichment(
+                        epmc_best, ref, source_was_title
+                    )
+                    cache.set(cache_key, enrichment)
+                    return enrichment
+            else:
+                logger.debug(
+                    "EuropePMC [%s]: no results returned", ref.ref_id
                 )
-                cache.set(cache_key, enrichment)
-                return enrichment
-            score = score_match(ref, epmc_best)
-            logger.debug(
-                "EuropePMC [%s]: best score=%.3f doi=%s title=%r"
-                " (%d title-candidates, %d journal-candidates)",
-                ref.ref_id, score,
-                epmc_best.get("doi"), epmc_best.get("title"),
-                len(epmc_title_candidates), len(epmc_journal_candidates),
-            )
-            if score >= HIGH_CONFIDENCE_THRESHOLD:
-                enrichment = _build_epmc_enrichment(
-                    epmc_best, ref, source_was_title
-                )
-                cache.set(cache_key, enrichment)
-                return enrichment
-        else:
-            logger.debug("EuropePMC [%s]: no results returned", ref.ref_id)
 
-        # score_match cannot compare titles, CrossRef and DataCite results
-        # cannot be reliably evaluated
-        if ref.title_from_source:
-            return None
+            # score_match cannot compare titles, CrossRef and DataCite results
+            # cannot be reliably evaluated
+            if ref.title_from_source:
+                return None
 
-        # CrossRef fallback
-        source = ref.source if ref.source != ref.title else ""
-        query = " ".join(filter(None, [ref.title, source, ref.year]))
-        logger.debug(
-            "CrossRef [%s]: querying %r author=%r",
-            ref.ref_id, query, ref.first_author,
-        )
-        cr_candidates = await crossref.lookup(ref)
-        if cr_candidates:
-            best = max(cr_candidates, key=lambda c: score_match(ref, c))
-            score = score_match(ref, best)
+            # CrossRef fallback
+            source = ref.source if ref.source != ref.title else ""
+            query = " ".join(filter(None, [ref.title, source, ref.year]))
             logger.debug(
-                "CrossRef [%s]: best score=%.3f doi=%s title=%r"
-                " (%d candidates)",
-                ref.ref_id, score,
-                best.get("doi"), best.get("title"), len(cr_candidates),
+                "CrossRef [%s]: querying %r author=%r",
+                ref.ref_id, query, ref.first_author,
             )
-            if score >= HIGH_CONFIDENCE_THRESHOLD:
-                enrichment = {"doi": best["doi"], "resolver": "crossref"}
-                if ref.title_from_source:
-                    enrichment["article_title_to_add"] = best.get("title", "")
-                cache.set(cache_key, enrichment)
-                return enrichment
-        else:
-            logger.debug("CrossRef [%s]: no results returned", ref.ref_id)
+            cr_candidates = await crossref.lookup(ref)
+            if cr_candidates:
+                best = max(cr_candidates, key=lambda c: score_match(ref, c))
+                score = score_match(ref, best)
+                logger.debug(
+                    "CrossRef [%s]: best score=%.3f doi=%s title=%r"
+                    " (%d candidates)",
+                    ref.ref_id, score,
+                    best.get("doi"), best.get("title"), len(cr_candidates),
+                )
+                if score >= HIGH_CONFIDENCE_THRESHOLD:
+                    enrichment = {"doi": best["doi"], "resolver": "crossref"}
+                    if ref.title_from_source:
+                        enrichment["article_title_to_add"] = best.get(
+                            "title", ""
+                        )
+                    cache.set(cache_key, enrichment)
+                    return enrichment
+            else:
+                logger.debug(
+                    "CrossRef [%s]: no results returned", ref.ref_id
+                )
 
         # DataCite fallback
         dc_candidates = await datacite.lookup(ref)
