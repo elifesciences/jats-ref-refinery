@@ -1,6 +1,15 @@
 """Tests for enricher helpers."""
 
-from app.enricher import _build_suspect_enrichment, _doi_version_match
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from app.enricher import (
+    _build_suspect_enrichment,
+    _doi_version_match,
+    _lookup_doi,
+)
 from app.types import RefFields
 
 
@@ -108,3 +117,89 @@ def test_build_suspect_enrichment_returns_none_when_no_existing_pids():
         ref, {"doi": "10.1234/foo", "pmid": "999"}
     )
     assert result is None
+
+
+# --- publication-type routing ---
+
+def _make_resolvers(datacite_doi="10.5281/zenodo.123"):
+    """Return (europepmc, crossref, datacite, cache, semaphore) mocks."""
+    europepmc = MagicMock()
+    europepmc.lookup = AsyncMock(return_value=[])
+    europepmc.lookup_by_journal = AsyncMock(return_value=[])
+
+    crossref = MagicMock()
+    crossref.lookup = AsyncMock(return_value=[])
+
+    datacite = MagicMock()
+    datacite.lookup = AsyncMock(return_value=[
+        {
+            "doi": datacite_doi,
+            "title": "My Software Tool",
+            "first_author": "Jones",
+            "year": "2022",
+            "source": "",
+        }
+    ])
+
+    cache = MagicMock()
+    cache.get = MagicMock(return_value=None)
+    cache.set = MagicMock()
+
+    semaphore = asyncio.Semaphore(3)
+    return europepmc, crossref, datacite, cache, semaphore
+
+
+@pytest.mark.asyncio
+async def test_software_publication_type_skips_epmc_and_crossref():
+    ref = _make_ref(
+        title="My Software Tool",
+        first_author="Jones",
+        year="2022",
+        publication_type="software",
+    )
+    epmc, cr, dc, cache, sem = _make_resolvers()
+
+    with patch("app.scoring.score_match", return_value=0.9):
+        await _lookup_doi(ref, cr, dc, epmc, cache, sem)
+
+    epmc.lookup.assert_not_called()
+    epmc.lookup_by_journal.assert_not_called()
+    cr.lookup.assert_not_called()
+    dc.lookup.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_data_publication_type_skips_epmc_and_crossref():
+    ref = _make_ref(
+        title="My Dataset",
+        first_author="Jones",
+        year="2022",
+        publication_type="data",
+    )
+    epmc, cr, dc, cache, sem = _make_resolvers(
+        datacite_doi="10.5281/zenodo.456"
+    )
+
+    with patch("app.scoring.score_match", return_value=0.9):
+        await _lookup_doi(ref, cr, dc, epmc, cache, sem)
+
+    epmc.lookup.assert_not_called()
+    cr.lookup.assert_not_called()
+    dc.lookup.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_journal_publication_type_uses_full_pipeline():
+    ref = _make_ref(
+        title="Some Article",
+        first_author="Jones",
+        year="2022",
+        publication_type="journal",
+    )
+    epmc, cr, dc, cache, sem = _make_resolvers()
+
+    with patch("app.scoring.score_match", return_value=0.0):
+        await _lookup_doi(ref, cr, dc, epmc, cache, sem)
+
+    epmc.lookup.assert_called_once()
+    cr.lookup.assert_called_once()

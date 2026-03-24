@@ -46,4 +46,5 @@ class RefFields:
     existing_doi: str = ""   # DOI already present in the input XML, if any
     existing_pmid: str = ""  # PMID already present in the input XML, if any
     nbk_id: str = ""         # NCBI Bookshelf ID from ext-link, if present
+    publication_type: str = ""  # publication-type attr; untrusted hint only
     enrichment: Optional[EnrichmentResult] = None  # populated by enricher
