@@ -168,6 +168,58 @@ def test_build_enriched_xml_adds_pmid():
     assert b'pub-id-type="pmid"' in result
 
 
+def test_publication_type_parsed_from_element_citation():
+    refs, _ = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation publication-type="software">
+            <article-title>My Tool</article-title>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    assert refs[0].publication_type == "software"
+
+
+def test_publication_type_parsed_from_mixed_citation():
+    refs, _ = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <mixed-citation publication-type="data">
+            <article-title>My Dataset</article-title>
+          </mixed-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    assert refs[0].publication_type == "data"
+
+
+def test_publication_type_normalised_to_lowercase():
+    refs, _ = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation publication-type="Software">
+            <article-title>My Tool</article-title>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    assert refs[0].publication_type == "software"
+
+
+def test_publication_type_absent_is_empty_string():
+    refs, _ = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <article-title>My Article</article-title>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    assert refs[0].publication_type == ""
+
+
 def test_build_enriched_xml_skips_unmatched_refs():
     raw = FIXTURE.read_bytes()
     refs, tree = parse_refs(raw)
