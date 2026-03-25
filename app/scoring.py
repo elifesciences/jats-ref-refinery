@@ -16,9 +16,10 @@ import re
 
 from rapidfuzz import fuzz
 
+from app import config
 from app.types import RefFields
 
-HIGH_CONFIDENCE_THRESHOLD = 0.75
+HIGH_CONFIDENCE_THRESHOLD = config.HIGH_CONFIDENCE_THRESHOLD
 
 _WEIGHTS = {
     "title": 0.50,

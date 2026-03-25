@@ -18,6 +18,7 @@ from typing import Optional
 
 import httpx
 
+from app import config
 from app.cache import get_cache
 from app.resolvers.crossref import CrossRefResolver
 from app.resolvers.datacite import DataCiteResolver
@@ -37,13 +38,15 @@ async def enrich_jats(raw_xml: bytes) -> bytes:
     """Parse JATS XML, enrich each <ref> with a DOI and PMID where possible."""
     refs, tree = parse_refs(raw_xml)
 
-    async with httpx.AsyncClient(timeout=5.0) as client:
+    async with httpx.AsyncClient(
+        timeout=config.HTTP_TIMEOUT
+    ) as client:
         crossref = CrossRefResolver(client)
         datacite = DataCiteResolver(client)
         europepmc = EuropePMCResolver(client)
         openalex = OpenAlexResolver(client)
         cache = get_cache()
-        semaphore = asyncio.Semaphore(3)  # Limit concurrent API requests
+        semaphore = asyncio.Semaphore(config.MAX_CONCURRENT_REQUESTS)
 
         tasks = [
             _enrich_ref(

@@ -6,10 +6,12 @@ import logging
 
 import httpx
 
+from app import config
+
 logger = logging.getLogger(__name__)
 
-_MAX_RETRIES = 2
-_BACKOFF_BASE = 1.0  # seconds
+_MAX_RETRIES = config.HTTP_MAX_RETRIES
+_BACKOFF_BASE = config.HTTP_BACKOFF_BASE
 
 
 _RETRYABLE_STATUSES = {429, 502, 503, 504}

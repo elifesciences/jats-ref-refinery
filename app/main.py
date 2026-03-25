@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.enricher import enrich_jats
+from app.types import InvalidXMLError
 
 _STATIC = Path(__file__).parent / "static"
 _UI_PAGE = (_STATIC / "index.html").read_text()
@@ -47,7 +48,13 @@ async def ready():
 async def enrich(request: Request) -> Response:
     """Accept a JATS XML package and return it enriched with DOIs and PMIDs."""
     body = await request.body()
-    enriched_xml = await enrich_jats(body)
+    try:
+        enriched_xml = await enrich_jats(body)
+    except InvalidXMLError as exc:
+        return PlainTextResponse(
+            content=f"Invalid or unparseable XML: {exc}",
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        )
     return Response(
         content=enriched_xml,
         media_type="application/xml",

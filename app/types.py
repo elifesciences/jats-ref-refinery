@@ -1,7 +1,11 @@
-"""Shared data types."""
+"""Shared data types and application exceptions."""
 
 import dataclasses
 from typing import Any, Optional
+
+
+class InvalidXMLError(ValueError):
+    """Raised when the supplied XML cannot be parsed."""
 
 
 @dataclasses.dataclass
