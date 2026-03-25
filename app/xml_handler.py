@@ -8,7 +8,7 @@ from typing import Any
 
 from lxml import etree
 
-from app.types import RefFields
+from app.types import InvalidXMLError, RefFields
 
 
 def parse_refs(raw_xml: bytes) -> tuple[list[RefFields], Any]:
@@ -21,7 +21,10 @@ def parse_refs(raw_xml: bytes) -> tuple[list[RefFields], Any]:
     parser = etree.XMLParser(
         remove_blank_text=False, resolve_entities=False, load_dtd=False
     )
-    tree = etree.parse(BytesIO(raw_xml), parser)
+    try:
+        tree = etree.parse(BytesIO(raw_xml), parser)
+    except etree.XMLSyntaxError as exc:
+        raise InvalidXMLError(str(exc)) from exc
 
     refs: list[RefFields] = []
     for ref_el in tree.getroot().iter("ref"):
