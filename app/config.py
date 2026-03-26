@@ -53,3 +53,8 @@ HTTP_BACKOFF_BASE: float = _float("HTTP_BACKOFF_BASE", 1.0)
 
 # Maximum number of outbound API requests in flight at once.
 MAX_CONCURRENT_REQUESTS: int = _int("MAX_CONCURRENT_REQUESTS", 3)
+
+# --- Cache ---
+
+# Maximum number of entries in the LRU cache.
+CACHE_MAX_SIZE: int = _int("CACHE_MAX_SIZE", 3000)
