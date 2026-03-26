@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response, status
@@ -8,6 +9,10 @@ from fastapi.staticfiles import StaticFiles
 
 from app.enricher import enrich_jats
 from app.types import InvalidXMLError
+
+logging.basicConfig(level=logging.DEBUG)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 _STATIC = Path(__file__).parent / "static"
 _UI_PAGE = (_STATIC / "index.html").read_text()

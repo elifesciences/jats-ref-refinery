@@ -28,9 +28,6 @@ from app.scoring import HIGH_CONFIDENCE_THRESHOLD, score_match
 from app.types import EnrichmentResult, RefFields
 from app.xml_handler import build_enriched_xml, parse_refs
 
-logging.basicConfig(level=logging.DEBUG)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
