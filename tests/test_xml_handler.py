@@ -302,6 +302,30 @@ def test_build_enriched_xml_renames_source_to_article_title():
     assert b"<source>Clinical Cancer Research</source>" in result
 
 
+def test_build_enriched_xml_applies_structural_fix_with_no_pid_changes():
+    """Structural-only enrichment (no new PIDs) must not be skipped."""
+    refs, tree = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <source>Clin Cancer Res</source>
+            <pub-id pub-id-type="doi">10.1158/1078-0432.ccr-03-0488</pub-id>
+            <pub-id pub-id-type="pmid">15280612</pub-id>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    refs[0].enrichment = EnrichmentResult(
+        article_title_to_add="Hypoxia and tumour progression",
+    )
+
+    result = build_enriched_xml(tree, refs)
+    assert (
+        b"<article-title>Hypoxia and tumour progression</article-title>"
+        in result
+    )
+
+
 def test_build_enriched_xml_suspect_doi_adds_comment_only():
     refs, tree = _parse("""<article>
       <back><ref-list>

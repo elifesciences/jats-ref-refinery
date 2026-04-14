@@ -137,7 +137,8 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
             continue
 
         if not any([
-            e.doi, e.pmid, e.suspect_doi, e.suspect_pmid, e.source_to_add
+            e.doi, e.pmid, e.suspect_doi, e.suspect_pmid,
+            e.source_to_add, e.article_title_to_add, e.journal_name_to_add,
         ]):
             continue
 
