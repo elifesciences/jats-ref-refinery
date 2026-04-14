@@ -136,7 +136,9 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
         if not e:
             continue
 
-        if not any([e.doi, e.pmid, e.suspect_doi, e.suspect_pmid]):
+        if not any([
+            e.doi, e.pmid, e.suspect_doi, e.suspect_pmid, e.source_to_add
+        ]):
             continue
 
         citation = ref.element.find(".//mixed-citation")
@@ -209,6 +211,20 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
             new_title.text = article_title
             new_title.tail = ", "
             citation.insert(list(citation).index(source_el), new_title)
+
+        # Scenario C: <article-title> exists but <source> is absent.
+        # Insert a new <source> element after <article-title>.
+        source_to_add = e.source_to_add
+        if source_to_add and citation.find("source") is None:
+            new_source = etree.Element("source")
+            new_source.text = source_to_add
+            new_source.tail = " "
+            article_title_el = citation.find("article-title")
+            if article_title_el is not None:
+                idx = list(citation).index(article_title_el)
+                citation.insert(idx + 1, new_source)
+            else:
+                citation.append(new_source)
 
     doctype = tree.docinfo.doctype
     out = BytesIO()

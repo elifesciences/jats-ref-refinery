@@ -135,9 +135,13 @@ async def _enrich_ref(
                 new_doi = (oa or {}).get("doi", "")
             enrichment.doi = new_doi
 
+        if not ref.source and candidate and candidate.get("source"):
+            enrichment.source_to_add = candidate["source"]
+
         if not any([
             enrichment.doi, enrichment.pmid,
             enrichment.suspect_doi, enrichment.suspect_pmid,
+            enrichment.source_to_add,
         ]):
             return None
         return enrichment
@@ -174,6 +178,7 @@ async def _enrich_ref(
         enrichment.journal_name_to_add = lookup_result.get(
             "journal_name_to_add", ""
         )
+        enrichment.source_to_add = lookup_result.get("source_to_add", "")
     return enrichment
 
 
@@ -316,6 +321,8 @@ def _build_epmc_enrichment(
             enrichment["journal_name_to_add"] = best.get("source", "")
         else:
             enrichment["article_title_to_add"] = best.get("title", "")
+    elif not ref.source and best.get("source"):
+        enrichment["source_to_add"] = best["source"]
     return enrichment
 
 
@@ -458,6 +465,8 @@ async def _lookup_doi(
                     enrichment["article_title_to_add"] = best.get(
                         "title", ""
                     )
+                elif not ref.source and best.get("source"):
+                    enrichment["source_to_add"] = best["source"]
                 cache.set(cache_key, enrichment)
                 return enrichment
         else:
@@ -481,6 +490,8 @@ async def _lookup_doi(
             enrichment = {"doi": best["doi"], "resolver": "datacite"}
             if ref.title_from_source:
                 enrichment["article_title_to_add"] = best.get("title", "")
+            elif not ref.source and best.get("source"):
+                enrichment["source_to_add"] = best["source"]
             cache.set(cache_key, enrichment)
             return enrichment
     else:

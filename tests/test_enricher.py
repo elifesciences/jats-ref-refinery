@@ -203,3 +203,68 @@ async def test_journal_publication_type_uses_full_pipeline():
 
     epmc.lookup.assert_called_once()
     cr.lookup.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_lookup_doi_populates_source_to_add_when_source_missing():
+    """When ref has no <source> and EPMC returns a journal name, source_to_add
+    is set on the enrichment dict."""
+    ref = _make_ref(
+        title="Tumour vasculature",
+        first_author="Smith",
+        year="2020",
+        source="",  # no journal name in the XML
+    )
+    epmc, cr, dc, cache, sem = _make_resolvers()
+    epmc.lookup = AsyncMock(return_value=[
+        {
+            "doi": "10.1038/nm.1234",
+            "pmid": "12345678",
+            "title": "Tumour vasculature",
+            "first_author": "Smith",
+            "year": "2020",
+            "source": "Nature Medicine",
+            "short_source": "Nat Med",
+            "pages": "100",
+            "api_score": 0.0,
+            "epmc_source": "MED",
+        }
+    ])
+
+    with patch("app.scoring.score_match", return_value=0.9):
+        result = await _lookup_doi(ref, cr, dc, epmc, cache, sem)
+
+    assert result is not None
+    assert result["source_to_add"] == "Nature Medicine"
+
+
+@pytest.mark.asyncio
+async def test_lookup_doi_no_source_to_add_when_source_already_present():
+    """When ref already has a <source>, source_to_add must not be set."""
+    ref = _make_ref(
+        title="Tumour vasculature",
+        first_author="Smith",
+        year="2020",
+        source="Nature Medicine",  # already present in XML
+    )
+    epmc, cr, dc, cache, sem = _make_resolvers()
+    epmc.lookup = AsyncMock(return_value=[
+        {
+            "doi": "10.1038/nm.1234",
+            "pmid": "12345678",
+            "title": "Tumour vasculature",
+            "first_author": "Smith",
+            "year": "2020",
+            "source": "Nature Medicine",
+            "short_source": "Nat Med",
+            "pages": "100",
+            "api_score": 0.0,
+            "epmc_source": "MED",
+        }
+    ])
+
+    with patch("app.scoring.score_match", return_value=0.9):
+        result = await _lookup_doi(ref, cr, dc, epmc, cache, sem)
+
+    assert result is not None
+    assert result.get("source_to_add", "") == ""
