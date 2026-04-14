@@ -302,6 +302,30 @@ def test_build_enriched_xml_renames_source_to_article_title():
     assert b"<source>Clinical Cancer Research</source>" in result
 
 
+def test_build_enriched_xml_applies_structural_fix_with_no_pid_changes():
+    """Structural-only enrichment (no new PIDs) must not be skipped."""
+    refs, tree = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <source>Clin Cancer Res</source>
+            <pub-id pub-id-type="doi">10.1158/1078-0432.ccr-03-0488</pub-id>
+            <pub-id pub-id-type="pmid">15280612</pub-id>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    refs[0].enrichment = EnrichmentResult(
+        article_title_to_add="Hypoxia and tumour progression",
+    )
+
+    result = build_enriched_xml(tree, refs)
+    assert (
+        b"<article-title>Hypoxia and tumour progression</article-title>"
+        in result
+    )
+
+
 def test_build_enriched_xml_suspect_doi_adds_comment_only():
     refs, tree = _parse("""<article>
       <back><ref-list>
@@ -320,6 +344,54 @@ def test_build_enriched_xml_suspect_doi_adds_comment_only():
     assert b"10.1234/correct" in result
     # Must not insert a new pub-id for the suggested DOI
     assert result.count(b'pub-id-type="doi"') == 1
+
+
+def test_build_enriched_xml_inserts_source_when_absent():
+    """Scenario C: article-title present but <source> entirely absent."""
+    refs, tree = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <article-title>Tumour vasculature</article-title>
+            <volume>10</volume>
+            <fpage>100</fpage>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    refs[0].enrichment = EnrichmentResult(
+        pmid="12345678",
+        resolver="europepmc",
+        source_to_add="Nature Medicine",
+    )
+
+    result = build_enriched_xml(tree, refs)
+    assert b"<source>Nature Medicine</source>" in result
+    assert b"<article-title>Tumour vasculature</article-title>" in result
+    # <source> must appear after <article-title>
+    assert result.index(b"<article-title>") < result.index(b"<source>")
+
+
+def test_build_enriched_xml_source_to_add_skipped_when_source_exists():
+    """source_to_add must not fire when a <source> element is present."""
+    refs, tree = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <article-title>Title</article-title>
+            <source>Existing Journal</source>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    refs[0].enrichment = EnrichmentResult(
+        pmid="12345678",
+        source_to_add="Should Not Appear",
+    )
+
+    result = build_enriched_xml(tree, refs)
+    assert b"Should Not Appear" not in result
+    assert b"<source>Existing Journal</source>" in result
 
 
 def test_build_enriched_xml_suspect_pmid_adds_comment_only():

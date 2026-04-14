@@ -18,6 +18,8 @@ class EnrichmentResult:
     resolver: which API found the match (for internal routing/logging).
     article_title_to_add/journal_name_to_add: tag-fix instructions when the
         original ref had no <article-title> or a mis-tagged <source>.
+    source_to_add: journal name to insert as a new <source> element when
+        <article-title> is present but <source> is entirely absent.
     """
 
     doi: str = ""
@@ -27,6 +29,7 @@ class EnrichmentResult:
     resolver: str = ""
     article_title_to_add: str = ""
     journal_name_to_add: str = ""
+    source_to_add: str = ""
 
 
 @dataclasses.dataclass

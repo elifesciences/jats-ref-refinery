@@ -40,6 +40,30 @@ def _clean(s: str) -> str:
     return s
 
 
+def source_was_title(ref_source: str, candidate: dict) -> bool:
+    """Return True if ref's <source> text is the article title, not the
+    journal name.
+
+    Used when title_from_source is True and we already have a verified
+    candidate (e.g. from a PID lookup). Compares ref.source against the
+    candidate's title and journal name; whichever is the closer match
+    determines the interpretation.
+    """
+    ref_s = _clean(ref_source)
+    if not ref_s:
+        return False
+    title_sim = fuzz.token_sort_ratio(
+        ref_s, _clean(candidate.get("title", ""))
+    )
+    source_sim = max(
+        fuzz.token_sort_ratio(ref_s, _clean(candidate.get("source", ""))),
+        fuzz.token_sort_ratio(
+            ref_s, _clean(candidate.get("short_source", ""))
+        ),
+    )
+    return title_sim > source_sim
+
+
 def score_match(ref: RefFields, candidate: dict) -> float:
     """Return a 0–1 confidence score for how well candidate matches ref.
 
