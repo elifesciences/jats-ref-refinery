@@ -411,3 +411,44 @@ def test_build_enriched_xml_suspect_pmid_adds_comment_only():
     assert b"existing PMID may be incorrect" in result
     assert b"11111" in result
     assert result.count(b'pub-id-type="pmid"') == 1
+
+
+def test_build_enriched_xml_unverified_doi_adds_comment_only():
+    refs, tree = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <article-title>Title</article-title>
+            <pub-id pub-id-type="doi">10.9999/unverifiable</pub-id>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    refs[0].enrichment = EnrichmentResult(unverified_doi=True)
+
+    result = build_enriched_xml(tree, refs)
+    assert b"existing DOI could not be verified" in result
+    assert b"existing PMID could not be verified" not in result
+    # Must not insert or remove any pub-id elements
+    assert result.count(b'pub-id-type="doi"') == 1
+    assert b"10.9999/unverifiable" in result
+
+
+def test_build_enriched_xml_unverified_pmid_adds_comment_only():
+    refs, tree = _parse("""<article>
+      <back><ref-list>
+        <ref id="r1">
+          <element-citation>
+            <article-title>Title</article-title>
+            <pub-id pub-id-type="pmid">99999999</pub-id>
+          </element-citation>
+        </ref>
+      </ref-list></back>
+    </article>""")
+    refs[0].enrichment = EnrichmentResult(unverified_pmid=True)
+
+    result = build_enriched_xml(tree, refs)
+    assert b"existing PMID could not be verified" in result
+    assert b"existing DOI could not be verified" not in result
+    assert result.count(b'pub-id-type="pmid"') == 1
+    assert b"99999999" in result

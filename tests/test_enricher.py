@@ -8,6 +8,7 @@ import pytest
 from app.enricher import (
     _build_suspect_enrichment,
     _doi_version_match,
+    _enrich_ref,
     _lookup_doi,
 )
 from app.types import RefFields
@@ -236,6 +237,91 @@ async def test_lookup_doi_populates_source_to_add_when_source_missing():
 
     assert result is not None
     assert result["source_to_add"] == "Nature Medicine"
+
+
+def _make_all_failing_resolvers():
+    """Return resolver/cache/semaphore mocks where every lookup returns None
+    or an empty list."""
+    europepmc = MagicMock()
+    europepmc.lookup_by_doi = AsyncMock(return_value=None)
+    europepmc.lookup_by_pmid = AsyncMock(return_value=None)
+    europepmc.lookup = AsyncMock(return_value=[])
+    europepmc.lookup_by_journal = AsyncMock(return_value=[])
+
+    crossref = MagicMock()
+    crossref.lookup_by_doi = AsyncMock(return_value=None)
+    crossref.lookup = AsyncMock(return_value=[])
+
+    datacite = MagicMock()
+    datacite.lookup_by_doi = AsyncMock(return_value=None)
+    datacite.lookup = AsyncMock(return_value=[])
+
+    openalex = MagicMock()
+
+    cache = MagicMock()
+    cache.get = MagicMock(return_value=None)
+    cache.set = MagicMock()
+
+    return europepmc, crossref, datacite, openalex, cache, asyncio.Semaphore(3)
+
+
+@pytest.mark.asyncio
+async def test_enrich_ref_unverified_doi_when_all_resolvers_fail():
+    """DOI-only ref: unverified_doi=True, unverified_pmid=False."""
+    ref = _make_ref(
+        title="Some Article",
+        first_author="Smith",
+        year="2021",
+        existing_doi="10.9999/unverifiable",
+    )
+    epmc, cr, dc, oa, cache, sem = _make_all_failing_resolvers()
+
+    result = await _enrich_ref(ref, cr, dc, epmc, oa, cache, sem)
+
+    assert result is not None
+    assert result.unverified_doi is True
+    assert result.unverified_pmid is False
+    assert result.doi == ""
+    assert result.pmid == ""
+
+
+@pytest.mark.asyncio
+async def test_enrich_ref_unverified_pmid_when_all_resolvers_fail():
+    """PMID-only ref: unverified_pmid=True, unverified_doi=False."""
+    ref = _make_ref(
+        title="Some Article",
+        first_author="Smith",
+        year="2021",
+        existing_pmid="99999999",
+    )
+    epmc, cr, dc, oa, cache, sem = _make_all_failing_resolvers()
+
+    result = await _enrich_ref(ref, cr, dc, epmc, oa, cache, sem)
+
+    assert result is not None
+    assert result.unverified_pmid is True
+    assert result.unverified_doi is False
+    assert result.doi == ""
+    assert result.pmid == ""
+
+
+@pytest.mark.asyncio
+async def test_enrich_ref_unverified_both_when_all_resolvers_fail():
+    """DOI + PMID ref: both flags set when all resolvers fail."""
+    ref = _make_ref(
+        title="Some Article",
+        first_author="Smith",
+        year="2021",
+        existing_doi="10.9999/unverifiable",
+        existing_pmid="99999999",
+    )
+    epmc, cr, dc, oa, cache, sem = _make_all_failing_resolvers()
+
+    result = await _enrich_ref(ref, cr, dc, epmc, oa, cache, sem)
+
+    assert result is not None
+    assert result.unverified_doi is True
+    assert result.unverified_pmid is True
 
 
 @pytest.mark.asyncio

@@ -108,7 +108,10 @@ async def _enrich_ref(
                 ref, crossref, datacite, europepmc, cache, semaphore
             )
             if not lookup_result:
-                return None
+                return EnrichmentResult(
+                    unverified_doi=bool(doi),
+                    unverified_pmid=bool(pmid),
+                )
             return _build_suspect_enrichment(ref, lookup_result)
 
         # Verified — resolve any missing PID

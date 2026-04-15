@@ -138,6 +138,7 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
 
         if not any([
             e.doi, e.pmid, e.suspect_doi, e.suspect_pmid,
+            e.unverified_doi, e.unverified_pmid,
             e.source_to_add, e.article_title_to_add, e.journal_name_to_add,
         ]):
             continue
@@ -190,6 +191,21 @@ def build_enriched_xml(tree: Any, refs: list[RefFields]) -> bytes:
             citation.append(etree.Comment(
                 f" refinery: existing PMID may be incorrect;"
                 f" suggested: {e.suspect_pmid} "
+            ))
+
+        if e.unverified_doi:
+            prev = citation[-1] if len(citation) else None
+            if prev is not None:
+                prev.tail = (prev.tail or "") + " "
+            citation.append(etree.Comment(
+                " refinery: existing DOI could not be verified "
+            ))
+        if e.unverified_pmid:
+            prev = citation[-1] if len(citation) else None
+            if prev is not None:
+                prev.tail = (prev.tail or "") + " "
+            citation.append(etree.Comment(
+                " refinery: existing PMID could not be verified "
             ))
 
         # Fix tag structure when the original had no <article-title>.

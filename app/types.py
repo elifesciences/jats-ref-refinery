@@ -15,6 +15,8 @@ class EnrichmentResult:
     doi/pmid: new PIDs to insert as <pub-id> elements.
     suspect_doi/suspect_pmid: existing PIDs that appear incorrect,
         added as XML comments.
+    unverified_doi/unverified_pmid: existing PID(s) could not be confirmed
+        by any resolver, added as XML comments.
     resolver: which API found the match (for internal routing/logging).
     article_title_to_add/journal_name_to_add: tag-fix instructions when the
         original ref had no <article-title> or a mis-tagged <source>.
@@ -26,6 +28,8 @@ class EnrichmentResult:
     pmid: str = ""
     suspect_doi: str = ""
     suspect_pmid: str = ""
+    unverified_doi: bool = False
+    unverified_pmid: bool = False
     resolver: str = ""
     article_title_to_add: str = ""
     journal_name_to_add: str = ""
