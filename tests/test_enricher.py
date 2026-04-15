@@ -325,6 +325,37 @@ async def test_enrich_ref_unverified_both_when_all_resolvers_fail():
 
 
 @pytest.mark.asyncio
+async def test_lookup_doi_title_from_source_calls_lookup_by_journal_on_epmc():
+    """when title_from_source is set, lookup_by_journal must be
+    called on the EuropePMCResolver, not the CrossRefResolver.
+    """
+    ref = _make_ref(
+        title="Some Article",
+        first_author="Smith",
+        year="2021",
+        title_from_source=True,
+    )
+    europepmc = MagicMock(spec=["lookup", "lookup_by_journal"])
+    europepmc.lookup = AsyncMock(return_value=[])
+    europepmc.lookup_by_journal = AsyncMock(return_value=[])
+
+    crossref = MagicMock(spec=["lookup", "lookup_by_doi"])
+    crossref.lookup = AsyncMock(return_value=[])
+
+    datacite = MagicMock(spec=["lookup", "lookup_by_doi"])
+    datacite.lookup = AsyncMock(return_value=[])
+
+    cache = MagicMock()
+    cache.get = MagicMock(return_value=None)
+    cache.set = MagicMock()
+
+    await _lookup_doi(ref, europepmc, crossref, datacite, cache,
+                      asyncio.Semaphore(3))
+
+    europepmc.lookup_by_journal.assert_called_once_with(ref)
+
+
+@pytest.mark.asyncio
 async def test_lookup_doi_no_source_to_add_when_source_already_present():
     """When ref already has a <source>, source_to_add must not be set."""
     ref = _make_ref(
