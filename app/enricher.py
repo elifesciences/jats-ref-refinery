@@ -163,7 +163,7 @@ async def _enrich_ref(
 
     # Step 2b: no existing PIDs — bibliographic lookup
     lookup_result = await _lookup_doi(
-        ref, crossref, datacite, europepmc, cache, semaphore
+        ref, europepmc, crossref, datacite, cache, semaphore
     )
     if lookup_result:
         doi = lookup_result["doi"] or ""
