@@ -51,7 +51,7 @@ async def enrich_jats(raw_xml: bytes) -> bytes:
 
         tasks = [
             _enrich_ref(
-                ref, crossref, datacite, europepmc, openalex, cache, semaphore
+                ref, europepmc, crossref, datacite, openalex, cache, semaphore
             )
             for ref in refs
         ]
@@ -70,9 +70,9 @@ async def enrich_jats(raw_xml: bytes) -> bytes:
 
 async def _enrich_ref(
     ref: RefFields,
+    europepmc: EuropePMCResolver,
     crossref: CrossRefResolver,
     datacite: DataCiteResolver,
-    europepmc: EuropePMCResolver,
     openalex: OpenAlexResolver,
     cache,
     semaphore: asyncio.Semaphore,
@@ -105,7 +105,7 @@ async def _enrich_ref(
         if score < HIGH_CONFIDENCE_THRESHOLD:
             # Suspect — run bibliographic pipeline and flag any differences
             lookup_result = await _lookup_doi(
-                ref, crossref, datacite, europepmc, cache, semaphore
+                ref, europepmc, crossref, datacite, cache, semaphore
             )
             if not lookup_result:
                 return EnrichmentResult(
@@ -380,9 +380,9 @@ async def _lookup_via_openalex(
 
 async def _lookup_doi(
     ref: RefFields,
+    europepmc: EuropePMCResolver,
     crossref: CrossRefResolver,
     datacite: DataCiteResolver,
-    europepmc: EuropePMCResolver,
     cache,
     semaphore: asyncio.Semaphore,
 ) -> Optional[dict]:

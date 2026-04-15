@@ -161,7 +161,7 @@ async def test_software_publication_type_skips_epmc_and_crossref():
     epmc, cr, dc, cache, sem = _make_resolvers()
 
     with patch("app.scoring.score_match", return_value=0.9):
-        await _lookup_doi(ref, cr, dc, epmc, cache, sem)
+        await _lookup_doi(ref, epmc, cr, dc, cache, sem)
 
     epmc.lookup.assert_not_called()
     epmc.lookup_by_journal.assert_not_called()
@@ -182,7 +182,7 @@ async def test_data_publication_type_skips_epmc_and_crossref():
     )
 
     with patch("app.scoring.score_match", return_value=0.9):
-        await _lookup_doi(ref, cr, dc, epmc, cache, sem)
+        await _lookup_doi(ref, epmc, cr, dc, cache, sem)
 
     epmc.lookup.assert_not_called()
     cr.lookup.assert_not_called()
@@ -200,7 +200,7 @@ async def test_journal_publication_type_uses_full_pipeline():
     epmc, cr, dc, cache, sem = _make_resolvers()
 
     with patch("app.scoring.score_match", return_value=0.0):
-        await _lookup_doi(ref, cr, dc, epmc, cache, sem)
+        await _lookup_doi(ref, epmc, cr, dc, cache, sem)
 
     epmc.lookup.assert_called_once()
     cr.lookup.assert_called_once()
@@ -233,7 +233,7 @@ async def test_lookup_doi_populates_source_to_add_when_source_missing():
     ])
 
     with patch("app.scoring.score_match", return_value=0.9):
-        result = await _lookup_doi(ref, cr, dc, epmc, cache, sem)
+        result = await _lookup_doi(ref, epmc, cr, dc, cache, sem)
 
     assert result is not None
     assert result["source_to_add"] == "Nature Medicine"
@@ -276,7 +276,7 @@ async def test_enrich_ref_unverified_doi_when_all_resolvers_fail():
     )
     epmc, cr, dc, oa, cache, sem = _make_all_failing_resolvers()
 
-    result = await _enrich_ref(ref, cr, dc, epmc, oa, cache, sem)
+    result = await _enrich_ref(ref, epmc, cr, dc, oa, cache, sem)
 
     assert result is not None
     assert result.unverified_doi is True
@@ -296,7 +296,7 @@ async def test_enrich_ref_unverified_pmid_when_all_resolvers_fail():
     )
     epmc, cr, dc, oa, cache, sem = _make_all_failing_resolvers()
 
-    result = await _enrich_ref(ref, cr, dc, epmc, oa, cache, sem)
+    result = await _enrich_ref(ref, epmc, cr, dc, oa, cache, sem)
 
     assert result is not None
     assert result.unverified_pmid is True
@@ -317,7 +317,7 @@ async def test_enrich_ref_unverified_both_when_all_resolvers_fail():
     )
     epmc, cr, dc, oa, cache, sem = _make_all_failing_resolvers()
 
-    result = await _enrich_ref(ref, cr, dc, epmc, oa, cache, sem)
+    result = await _enrich_ref(ref, epmc, cr, dc, oa, cache, sem)
 
     assert result is not None
     assert result.unverified_doi is True
@@ -350,7 +350,7 @@ async def test_lookup_doi_no_source_to_add_when_source_already_present():
     ])
 
     with patch("app.scoring.score_match", return_value=0.9):
-        result = await _lookup_doi(ref, cr, dc, epmc, cache, sem)
+        result = await _lookup_doi(ref, epmc, cr, dc, cache, sem)
 
     assert result is not None
     assert result.get("source_to_add", "") == ""
