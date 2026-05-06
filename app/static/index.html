@@ -142,7 +142,7 @@
     const fileNameEl = document.getElementById('fileName');
     const fileSizeEl = document.getElementById('fileSize');
     const statusEl = document.getElementById('status');
-    let outputFilename = 'enriched.xml';
+    let outputFilename = 'output.xml';
 
     dropZone.addEventListener('click', () => fileInput.click());
 
@@ -172,7 +172,7 @@
         showStatus('Please select a valid XML file.', 'error');
         return;
       }
-      outputFilename = file.name.replace(/(\.xml)?$/i, '_enriched.xml');
+      outputFilename = file.name;
       fileNameEl.textContent = file.name;
       fileSizeEl.textContent = formatSize(file.size);
       fileInfo.classList.add('show');
