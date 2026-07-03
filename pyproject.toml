@@ -28,7 +28,7 @@ dev = [
     "ruff>=0.9.0",
 ]
 eval = [
-    "matplotlib>=3.9.0",
+    "matplotlib>=3.11.0",
 ]
 
 [tool.pytest.ini_options]
